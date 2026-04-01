@@ -1,0 +1,281 @@
+/* =============================================
+   Modern Tkinter-Inspired Desktop App Style
+   Clean, native-like, ttk-themed aesthetic
+   ============================================= */
+
+:root {
+    --primary: #0078d4;           /* Windows accent blue */
+    --primary-hover: #106ebe;
+    --bg: #f0f0f0;                /* Classic Tkinter light gray background */
+    --surface: #ffffff;
+    --surface2: #f8f8f8;
+    --text: #1e1e1e;
+    --text-muted: #555555;
+    --border: #c0c0c0;            /* Classic Tkinter border color */
+    --border-focus: #0078d4;
+    --success: #107c10;
+    --danger: #c42b1c;
+    --radius: 4px;                /* Tkinter-style softer corners */
+    --shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+    --inner-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Global Reset - Strong Tkinter Desktop Feel */
+* {
+    box-sizing: border-box;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI Variable', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    margin: 0;
+    padding: 0;
+}
+
+/* ==================== CARDS ==================== */
+.card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+    background: linear-gradient(to bottom, #f9f9f9, #f0f0f0);
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 600;
+    padding: 12px 18px;
+    font-size: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* ==================== BUTTONS - Tkinter Style ==================== */
+.btn {
+    border-radius: var(--radius);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid #a0a0a0;
+    background: linear-gradient(to bottom, #f8f8f8, #e8e8e8);
+    color: var(--text);
+    transition: all 0.15s ease;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover {
+    background: linear-gradient(to bottom, #ffffff, #f0f0f0);
+    border-color: #909090;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    background: linear-gradient(to bottom, #e0e0e0, #f0f0f0);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2);
+    transform: translateY(1px);
+}
+
+.btn-primary,
+.btn-gradient {
+    background: linear-gradient(to bottom, var(--primary), #005a9e);
+    border: 1px solid #005a9e;
+    color: white;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:hover,
+.btn-gradient:hover {
+    background: linear-gradient(to bottom, #1084e8, var(--primary-hover));
+    border-color: #106ebe;
+}
+
+.btn-primary:active,
+.btn-gradient:active {
+    background: linear-gradient(to bottom, var(--primary-hover), #004c85);
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Success & Danger buttons */
+.btn-success {
+    background: linear-gradient(to bottom, #107c10, #0c6a0c);
+    border-color: #0c6a0c;
+}
+
+.btn-danger {
+    background: linear-gradient(to bottom, var(--danger), #a5221a);
+    border-color: #a5221a;
+}
+
+/* ==================== FORM CONTROLS - ttk Style ==================== */
+.form-control,
+.form-select {
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+    padding: 9px 12px;
+    font-size: 15px;
+    box-shadow: var(--inner-shadow);
+    transition: border 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--border-focus);
+    box-shadow: 0 0 0 3px rgba(0, 120, 212, 0.25), var(--inner-shadow);
+    outline: none;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    font-size: 14px;
+    display: block;
+}
+
+/* ==================== TABLES ==================== */
+.table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.table thead th {
+    background: linear-gradient(to bottom, #f8f8f8, #e8e8e8);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 12.5px;
+    letter-spacing: 0.3px;
+    padding: 14px 12px;
+    border-bottom: 2px solid #c0c0c0;
+    vertical-align: middle;
+}
+
+.table td {
+    padding: 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: middle;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 120, 212, 0.07);
+}
+
+/* ==================== STAT CARDS ==================== */
+.stat-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    transition: all 0.25s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.14);
+}
+
+.stat-icon {
+    font-size: 2.8rem;
+    color: var(--primary);
+    opacity: 0.85;
+}
+
+/* ==================== MODALS - Desktop Dialog Style ==================== */
+.modal-content {
+    border: 1px solid #a0a0a0;
+    border-radius: 8px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+    overflow: hidden;
+    background: var(--surface);
+}
+
+.modal-header {
+    background: linear-gradient(to bottom, #f9f9f9, #f0f0f0);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 20px;
+    color: var(--text);
+    font-weight: 600;
+}
+
+/* ==================== DROPDOWNS ==================== */
+.dropdown-menu {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+    padding: 6px 0;
+    background: var(--surface);
+    margin-top: 4px;
+}
+
+.dropdown-item:hover {
+    background: rgba(0, 120, 212, 0.12);
+    color: var(--text);
+}
+
+/* ==================== LOADING SPINNER ==================== */
+.spinner-overlay {
+    background: rgba(40, 40, 40, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.spinner-border-custom {
+    width: 44px;
+    height: 44px;
+    border: 5px solid #e0e0e0;
+    border-top-color: var(--primary);
+    animation: spin 1s linear infinite;
+}
+
+/* ==================== ANIMATIONS & PRINT ==================== */
+.fade-in {
+    animation: fadeIn 0.4s ease forwards;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Print */
+@media print {
+    .no-print { display: none !important; }
+    body { background: white; }
+    .card { box-shadow: none; border: 1px solid #999; }
+}
+
+/* Responsive - Keep desktop-first but mobile friendly */
+@media (max-width: 768px) {
+    .card, .modal-content {
+        border-radius: 6px;
+    }
+    
+    .table td, .table th {
+        padding: 10px 8px;
+        font-size: 14px;
+    }
+    
+    .btn {
+        padding: 10px 14px;
+    }
+}
