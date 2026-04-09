@@ -12,7 +12,7 @@ class BomTemplateModel extends Model
     protected $returnType       = 'array';
     protected $useSoftDeletes   = false;
     protected $protectFields    = true;
-    protected $allowedFields    = ['template_name', 'description', 'finished_product_id', 'created_by'];
+    protected $allowedFields    = ['template_name', 'description', 'created_by'];
 
     // Dates
     protected $useTimestamps = true;
@@ -22,8 +22,7 @@ class BomTemplateModel extends Model
 
     // Validation
     protected $validationRules = [
-        'template_name' => 'required|min_length[2]|max_length[255]|is_unique[bom_templates.template_name,id,{id}]',
-        'finished_product_id' => 'permit_empty|is_not_unique[products.id]'
+        'template_name' => 'required|min_length[2]|max_length[255]|is_unique[bom_templates.template_name,id,{id}]'
     ];
 
     /**
@@ -91,7 +90,6 @@ class BomTemplateModel extends Model
         $newTemplateId = $this->insert([
             'template_name' => $newName,
             'description' => $template['description'] . ' (Copy)',
-            'finished_product_id' => $template['finished_product_id'],
             'created_by' => session()->get('user_id')
         ]);
         

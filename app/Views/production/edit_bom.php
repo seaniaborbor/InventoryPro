@@ -16,22 +16,10 @@
                     <?= csrf_field() ?>
 
                     <div class="row mb-3">
-                        <div class="col-md-8">
+                        <div class="col-md-12">
                             <label for="template_name" class="form-label">Template Name *</label>
                             <input type="text" class="form-control" id="template_name" name="template_name"
                                 value="<?= esc($template['template_name']) ?>" required>
-                        </div>
-                        <div class="col-md-4">
-                            <label for="finished_product_id" class="form-label">Finished Product (Optional)</label>
-                            <select class="form-select" id="finished_product_id" name="finished_product_id">
-                                <option value="">None - Materials Only</option>
-                                <?php foreach ($products as $product): ?>
-                                    <option value="<?= $product['id'] ?>"
-                                        <?= $template['finished_product_id'] == $product['id'] ? 'selected' : '' ?>>
-                                        <?= esc($product['product_name']) ?> (SKU: <?= esc($product['sku']) ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
                         </div>
                     </div>
 
@@ -170,10 +158,9 @@ $(document).ready(function () {
         }
 
         var formData = {
-            template_name:       templateName,
-            description:         $('#description').val(),
-            finished_product_id: $('#finished_product_id').val(),
-            items:               materials
+            template_name: templateName,
+            description:   $('#description').val(),
+            items:         materials
         };
 
         Swal.fire({

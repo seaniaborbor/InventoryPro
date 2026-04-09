@@ -34,7 +34,6 @@ foreach ($products as $p) {
                                     <th>#</th>
                                     <th>Template Name</th>
                                     <th>Description</th>
-                                    <th>Finished Product</th>
                                     <th>Created</th>
                                     <th class="text-center" width="160">Actions</th>
                                 </tr>
@@ -54,16 +53,6 @@ foreach ($products as $p) {
                                             <?php else: ?>
                                                 <span class="text-muted small fst-italic">No description</span>
                                             <?php endif; ?>
-                                        </td>
-                                        <td>
-                                            <?php if (!empty($template['finished_product_id']) && isset($productMap[$template['finished_product_id']])): ?>
-                                                <span class="badge bg-info text-dark">
-                                                    <?= esc($productMap[$template['finished_product_id']]) ?>
-                                                </span>
-                                            <?php else: ?>
-                                                <span class="text-muted small fst-italic">Materials only</span>
-                                            <?php endif; ?>
-                                        </td>
                                         <td class="small text-muted">
                                             <?= date('M j, Y', strtotime($template['created_at'])) ?>
                                         </td>

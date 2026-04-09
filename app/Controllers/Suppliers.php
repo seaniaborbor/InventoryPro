@@ -31,7 +31,8 @@ class Suppliers extends BaseController
         $data = [
             'title' => 'Suppliers',
             'suppliers' => $this->supplierModel->getAllWithStats(),
-            'activePage' => 'purchases'
+            'activePage' => 'purchases',
+            'activeSubPage' => 'suppliers'
         ];
         
         return view('suppliers/index', $data);

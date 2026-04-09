@@ -103,9 +103,24 @@
             border-left: 4px solid #fff;
         }
         
+        #sidebar ul li ul li.active > a {
+            background: rgba(255, 255, 255, 0.2);
+            border-left: 4px solid rgba(255, 255, 255, 0.7);
+        }
+        
         #sidebar ul li a i {
             margin-right: 10px;
             width: 20px;
+        }
+        
+        /* Sub-menu indentation */
+        #sidebar ul li ul li a {
+            padding-left: 40px;
+            font-size: 0.9rem;
+        }
+        
+        #sidebar ul li ul li a:hover {
+            padding-left: 45px;
         }
         
         /* Content Styles */
@@ -288,105 +303,112 @@
                 <?php endif; ?>
                 
                 <?php if (can_access_module('inventory')): ?>
-                <li>
-                    <a href="#inventorySubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                <li class="<?= $activePage == 'inventory' ? 'active' : '' ?>">
+                    <a href="#inventorySubmenu" data-bs-toggle="collapse" aria-expanded="<?= $activePage == 'inventory' ? 'true' : 'false' ?>" class="dropdown-toggle">
                         <i class="bi bi-box-seam"></i> Inventory
                     </a>
-                    <ul class="collapse list-unstyled" id="inventorySubmenu">
-                        <li><a href="<?= base_url('inventory/products') ?>"><i class="bi bi-grid"></i> Products</a></li>
+                    <ul class="collapse list-unstyled <?= $activePage == 'inventory' ? 'show' : '' ?>" id="inventorySubmenu">
+                        <li class="<?= ($activeSubPage ?? '') == 'products' ? 'active' : '' ?>"><a href="<?= base_url('inventory/products') ?>"><i class="bi bi-grid"></i> Products</a></li>
                         <?php if (has_permission('manage_categories')): ?>
-                        <li><a href="<?= base_url('inventory/categories') ?>"><i class="bi bi-tags"></i> Categories</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'categories' ? 'active' : '' ?>"><a href="<?= base_url('inventory/categories') ?>"><i class="bi bi-tags"></i> Categories</a></li>
                         <?php endif; ?>
                         <?php if (has_permission('adjust_stock')): ?>
-                        <li><a href="<?= base_url('inventory/stock-adjustments') ?>"><i class="bi bi-arrow-left-right"></i> Stock Adjustments</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'stock-adjustments' ? 'active' : '' ?>"><a href="<?= base_url('inventory/stock-adjustments') ?>"><i class="bi bi-arrow-left-right"></i> Stock Adjustments</a></li>
                         <?php endif; ?>
-                        <li><a href="<?= base_url('inventory/low-stock') ?>"><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'low-stock' ? 'active' : '' ?>"><a href="<?= base_url('inventory/low-stock') ?>"><i class="bi bi-exclamation-triangle"></i> Low Stock Alerts</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (can_access_module('purchases') || can_access_module('suppliers')): ?>
-                <li>
-                    <a href="#purchaseSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                <li class="<?= $activePage == 'purchases' ? 'active' : '' ?>">
+                    <a href="#purchaseSubmenu" data-bs-toggle="collapse" aria-expanded="<?= $activePage == 'purchases' ? 'true' : 'false' ?>" class="dropdown-toggle">
                         <i class="bi bi-cart-plus"></i> Purchases
                     </a>
-                    <ul class="collapse list-unstyled" id="purchaseSubmenu">
+                    <ul class="collapse list-unstyled <?= $activePage == 'purchases' ? 'show' : '' ?>" id="purchaseSubmenu">
                         <?php if (can_access_module('purchases')): ?>
-                        <li><a href="<?= base_url('purchases') ?>"><i class="bi bi-list"></i> All Purchases</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'purchases' ? 'active' : '' ?>"><a href="<?= base_url('purchases') ?>"><i class="bi bi-list"></i> All Purchases</a></li>
                         <?php endif; ?>
                         <?php if (has_permission('manage_purchases')): ?>
-                        <li><a href="<?= base_url('purchases/create') ?>"><i class="bi bi-plus-circle"></i> New Purchase</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'create' ? 'active' : '' ?>"><a href="<?= base_url('purchases/create') ?>"><i class="bi bi-plus-circle"></i> New Purchase</a></li>
                         <?php endif; ?>
                         <?php if (can_access_module('suppliers')): ?>
-                        <li><a href="<?= base_url('suppliers') ?>"><i class="bi bi-truck"></i> Suppliers</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'suppliers' ? 'active' : '' ?>"><a href="<?= base_url('suppliers') ?>"><i class="bi bi-truck"></i> Suppliers</a></li>
                         <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (can_access_module('sales') || can_access_module('customers')): ?>
-                <li>
-                    <a href="#salesSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                <li class="<?= $activePage == 'sales' ? 'active' : '' ?>">
+                    <a href="#salesSubmenu" data-bs-toggle="collapse" aria-expanded="<?= $activePage == 'sales' ? 'true' : 'false' ?>" class="dropdown-toggle">
                         <i class="bi bi-cart"></i> Sales
                     </a>
-                    <ul class="collapse list-unstyled" id="salesSubmenu">
+                    <ul class="collapse list-unstyled <?= $activePage == 'sales' ? 'show' : '' ?>" id="salesSubmenu">
                         <?php if (can_access_module('sales')): ?>
-                        <li><a href="<?= base_url('sales') ?>"><i class="bi bi-list"></i> All Sales</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'sales' ? 'active' : '' ?>"><a href="<?= base_url('sales') ?>"><i class="bi bi-list"></i> All Sales</a></li>
                         <?php endif; ?>
                         <?php if (has_permission('create_sales') || has_permission('manage_sales')): ?>
-                        <li><a href="<?= base_url('sales/create') ?>"><i class="bi bi-plus-circle"></i> New Sale</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'create' ? 'active' : '' ?>"><a href="<?= base_url('sales/create') ?>"><i class="bi bi-plus-circle"></i> New Sale</a></li>
                         <?php endif; ?>
                         <?php if (can_access_module('customers')): ?>
-                        <li><a href="<?= base_url('customers') ?>"><i class="bi bi-people"></i> Customers</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'customers' ? 'active' : '' ?>"><a href="<?= base_url('customers') ?>"><i class="bi bi-people"></i> Customers</a></li>
                         <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (can_access_module('production')): ?>
-                <li>
-                    <a href="#productionSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                <li class="<?= $activePage == 'production' ? 'active' : '' ?>">
+                    <a href="#productionSubmenu" data-bs-toggle="collapse" aria-expanded="<?= $activePage == 'production' ? 'true' : 'false' ?>" class="dropdown-toggle">
                         <i class="bi bi-gear"></i> Production
                     </a>
-                    <ul class="collapse list-unstyled" id="productionSubmenu">
-                        <li><a href="<?= base_url('production/jobs') ?>"><i class="bi bi-list"></i> Production Jobs</a></li>
+                    <ul class="collapse list-unstyled <?= $activePage == 'production' ? 'show' : '' ?>" id="productionSubmenu">
+                        <li class="<?= ($activeSubPage ?? '') == 'jobs' ? 'active' : '' ?>"><a href="<?= base_url('production/jobs') ?>"><i class="bi bi-list"></i> Production Jobs</a></li>
                         <?php if (has_permission('manage_production')): ?>
-                        <li><a href="<?= base_url('production/create') ?>"><i class="bi bi-plus-circle"></i> New Job</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'create' ? 'active' : '' ?>"><a href="<?= base_url('production/create') ?>"><i class="bi bi-plus-circle"></i> New Job</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'categories' ? 'active' : '' ?>"><a href="<?= base_url('production/categories') ?>"><i class="bi bi-tags"></i> Categories</a></li>
                         <?php endif; ?>
                         <?php if (has_permission('manage_bom')): ?>
-                        <li><a href="<?= base_url('production/bom') ?>"><i class="bi bi-file-text"></i> Bill of Materials</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'bom' ? 'active' : '' ?>"><a href="<?= base_url('production/bom') ?>"><i class="bi bi-file-text"></i> Bill of Materials</a></li>
                         <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
-                
+
+                <?php if (can_access_module('adjustments') || can_access_module('inventory')): ?>
+                <li class="<?= $activePage == 'adjustments' ? 'active' : '' ?>">
+                    <a href="<?= base_url('adjustments') ?>"><i class="bi bi-arrow-down-up"></i> Adjustments</a>
+                </li>
+                <?php endif; ?>
+
                 <?php if (can_access_module('expenses')): ?>
-                <li>
-                    <a href="#expenseSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                <li class="<?= $activePage == 'expenses' ? 'active' : '' ?>">
+                    <a href="#expenseSubmenu" data-bs-toggle="collapse" aria-expanded="<?= $activePage == 'expenses' ? 'true' : 'false' ?>" class="dropdown-toggle">
                         <i class="bi bi-wallet2"></i> Expenses
                     </a>
-                    <ul class="collapse list-unstyled" id="expenseSubmenu">
-                        <li><a href="<?= base_url('expenses') ?>"><i class="bi bi-list"></i> All Expenses</a></li>
+                    <ul class="collapse list-unstyled <?= $activePage == 'expenses' ? 'show' : '' ?>" id="expenseSubmenu">
+                        <li class="<?= ($activeSubPage ?? '') == 'expenses' ? 'active' : '' ?>"><a href="<?= base_url('expenses') ?>"><i class="bi bi-list"></i> All Expenses</a></li>
                         <?php if (has_permission('manage_expenses')): ?>
-                        <li><a href="<?= base_url('expenses/create') ?>"><i class="bi bi-plus-circle"></i> Add Expense</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'create' ? 'active' : '' ?>"><a href="<?= base_url('expenses/create') ?>"><i class="bi bi-plus-circle"></i> Add Expense</a></li>
                         <?php endif; ?>
                         <?php if (has_permission('manage_expense_categories')): ?>
-                        <li><a href="<?= base_url('expenses/categories') ?>"><i class="bi bi-tag"></i> Categories</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'categories' ? 'active' : '' ?>"><a href="<?= base_url('expenses/categories') ?>"><i class="bi bi-tag"></i> Categories</a></li>
                         <?php endif; ?>
                     </ul>
                 </li>
                 <?php endif; ?>
                 
                 <?php if (can_access_module('reports')): ?>
-                <li>
-                    <a href="#reportsSubmenu" data-bs-toggle="collapse" aria-expanded="false" class="dropdown-toggle">
+                <li class="<?= $activePage == 'reports' ? 'active' : '' ?>">
+                    <a href="#reportsSubmenu" data-bs-toggle="collapse" aria-expanded="<?= $activePage == 'reports' ? 'true' : 'false' ?>" class="dropdown-toggle">
                         <i class="bi bi-graph-up"></i> Reports
                     </a>
-                    <ul class="collapse list-unstyled" id="reportsSubmenu">
-                        <li><a href="<?= base_url('reports/inventory') ?>"><i class="bi bi-box"></i> Inventory Reports</a></li>
-                        <li><a href="<?= base_url('reports/sales') ?>"><i class="bi bi-cart"></i> Sales Reports</a></li>
-                        <li><a href="<?= base_url('reports/financial') ?>"><i class="bi bi-currency-dollar"></i> Financial Reports</a></li>
-                        <li><a href="<?= base_url('reports/production') ?>"><i class="bi bi-gear"></i> Production Reports</a></li>
+                    <ul class="collapse list-unstyled <?= $activePage == 'reports' ? 'show' : '' ?>" id="reportsSubmenu">
+                        <li class="<?= ($activeSubPage ?? '') == 'inventory' ? 'active' : '' ?>"><a href="<?= base_url('reports/inventory') ?>"><i class="bi bi-box"></i> Inventory Reports</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'sales' ? 'active' : '' ?>"><a href="<?= base_url('reports/sales') ?>"><i class="bi bi-cart"></i> Sales Reports</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'financial' ? 'active' : '' ?>"><a href="<?= base_url('reports/financial') ?>"><i class="bi bi-currency-dollar"></i> Financial Reports</a></li>
+                        <li class="<?= ($activeSubPage ?? '') == 'production' ? 'active' : '' ?>"><a href="<?= base_url('reports/production') ?>"><i class="bi bi-gear"></i> Production Reports</a></li>
                     </ul>
                 </li>
                 <?php endif; ?>
@@ -418,6 +440,10 @@
                     </ul>
                 </li>
                 <?php endif; ?>
+
+                <li class="<?= $activePage == 'guide' ? 'active' : '' ?>">
+                    <a href="<?= base_url('guide') ?>"><i class="bi bi-journal-bookmark"></i> User Guide</a>
+                </li>
             </ul>
         </nav>
         

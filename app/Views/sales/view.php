@@ -148,7 +148,20 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <!-- Adjustments (Refunds / Returns) -->
+                <div class="card mt-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-arrow-down-up me-2"></i>Refunds &amp; Returns</h6>
+                        <a href="<?= base_url('adjustments/sale/' . $sale['id']) ?>" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-plus-circle"></i> Record Refund/Return
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div id="adjustmentList" class="text-muted"><em>Loading...</em></div>
+                    </div>
+                </div>
+
                 <!-- Notes -->
                 <?php if ($sale['notes']): ?>
                 <div class="card">
@@ -262,6 +275,36 @@ $('#paymentForm').on('submit', function(e) {
         },
         error: function() {
             showToast('Error', 'Failed to add payment', 'error');
+        }
+    });
+});
+
+// Load adjustments for this sale
+$(document).ready(function() {
+    $.ajax({
+        url: '<?= base_url('adjustments/api/sale/') ?><?= $sale['id'] ?>',
+        type: 'GET',
+        dataType: 'json',
+        success: function(resp) {
+            if (resp.data && resp.data.length > 0) {
+                var html = '<table class="table table-sm table-borderless"><thead><tr>' +
+                    '<th>Type</th><th>Product</th><th>Qty</th><th>Value</th><th>Date</th><th>Logged By</th></tr></thead><tbody>';
+                resp.data.forEach(function(e) {
+                    var badge = e.event_type === 'Refund' ? 'warning' : (e.event_type === 'Return' ? 'success' : 'secondary');
+                    html += '<tr><td><span class="badge bg-' + badge + '">' + e.event_type + '</span></td>' +
+                        '<td>' + (e.product_name || '') + '</td><td class="text-end">' + parseFloat(e.quantity).toFixed(2) + '</td>' +
+                        '<td class="text-end">' + parseFloat(e.total_value || 0).toFixed(2) + '</td>' +
+                        '<td><small>' + (e.event_date ? new Date(e.event_date).toLocaleDateString() : '') + '</small></td>' +
+                        '<td><small>' + (e.created_by_name || '') + '</small></td></tr>';
+                });
+                html += '</tbody></table>';
+                $('#adjustmentList').html(html);
+            } else {
+                $('#adjustmentList').html('<p class="text-muted mb-0">No refunds or returns recorded.</p>');
+            }
+        },
+        error: function() {
+            $('#adjustmentList').html('<p class="text-danger">Could not load adjustments.</p>');
         }
     });
 });

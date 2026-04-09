@@ -24,28 +24,47 @@
 
             <div class="card-body">
                 <div class="row mb-4">
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <strong>Job Name:</strong><br>
                         <?= esc($job['job_name']) ?>
                     </div>
-                    <div class="col-md-6">
+                    <div class="col-md-4">
                         <strong>Production Date:</strong><br>
                         <?= date('M j, Y', strtotime($job['production_date'])) ?>
+                    </div>
+                    <div class="col-md-4">
+                        <strong>Customer:</strong><br>
+                        <?php if (!empty($job['customer_id'])): ?>
+                            <?= esc($job['customer_name'] ?? 'Unknown') ?>
+                        <?php else: ?>
+                            <span class="text-muted">No customer assigned</span>
+                        <?php endif; ?>
                     </div>
                 </div>
 
                 <div class="row mb-4">
                     <div class="col-md-6">
-                        <strong>Finished Product:</strong><br>
-                        <?= !empty($job['finished_product_name'])
-                            ? esc($job['finished_product_name'])
-                            : '<span class="text-muted">Consumables only (No finished product)</span>' ?>
+                        <strong>Category:</strong><br>
+                        <?php if (!empty($job['production_category_id'])): ?>
+                            <?php
+                            // Get category name - you might need to load this in the controller
+                            $categoryName = 'Unknown';
+                            if (isset($job['category_name'])) {
+                                $categoryName = $job['category_name'];
+                            }
+                            ?>
+                            <?= esc($categoryName) ?>
+                        <?php else: ?>
+                            <span class="text-muted">No category assigned</span>
+                        <?php endif; ?>
                     </div>
+                </div>
+
+                <div class="row mb-4">
                     <div class="col-md-6">
                         <strong>Quantity Produced:</strong><br>
                         <?= number_format($job['quantity_produced'] ?? 0, 2) ?>
                     </div>
-                </div>
 
                 <div class="row mb-4">
                     <div class="col-md-6">
@@ -69,6 +88,41 @@
                     </div>
                 </div>
                 <?php endif; ?>
+
+                <!-- Adjustments (Damage during production) -->
+                <div class="card mb-4" id="adjustmentsSection">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Damage / Waste</h6>
+                        <a href="<?= base_url('adjustments/job/' . $job['id']) ?>" class="btn btn-sm btn-outline-danger">
+                            <i class="bi bi-plus-circle"></i> Record Damage
+                        </a>
+                    </div>
+                    <div class="card-body">
+                        <div id="adjustmentList" class="text-muted"><em>Loading...</em></div>
+                    </div>
+                </div>
+
+                <!-- Audit Information -->
+                <div class="card bg-light mb-4">
+                    <div class="card-body">
+                        <h6 class="card-title mb-3"><i class="bi bi-info-circle me-2"></i>Job Activity</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <strong>Created By:</strong> <?= esc($job['creator_name'] ?? 'Unknown') ?><br>
+                                <span class="text-muted small"><?= esc($job['created_at_display'] ?? '') ?></span>
+                            </div>
+                            <div class="col-md-6">
+                                <strong>Last Updated:</strong><br>
+                                <?php if (!empty($job['updated_at'])): ?>
+                                    By <?= esc($job['updater_name'] ?? 'Unknown') ?><br>
+                                    <span class="text-muted small"><?= esc($job['updated_at_display'] ?? '') ?></span>
+                                <?php else: ?>
+                                    <span class="text-muted small">Not updated yet</span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
                 <!-- Materials Used -->
                 <h6 class="mb-3"><i class="bi bi-list-check me-2"></i>Materials Used</h6>

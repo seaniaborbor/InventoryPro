@@ -17,27 +17,36 @@ $expenseEntryCount = count($expense_log);
                     <div class="col-md-2">
                         <label class="form-label">Period</label>
                         <select name="period" id="financialPeriodFilter" class="form-select">
-                            <option value="all" <?= ($selectedPeriod ?? 'all') === 'all' ? 'selected' : '' ?>>All Records</option>
-                            <option value="last_week" <?= ($selectedPeriod ?? '') === 'last_week' ? 'selected' : '' ?>>Last Week</option>
-                            <option value="last_month" <?= ($selectedPeriod ?? '') === 'last_month' ? 'selected' : '' ?>>Last Month</option>
-                            <option value="last_year" <?= ($selectedPeriod ?? '') === 'last_year' ? 'selected' : '' ?>>Last Year</option>
-                            <option value="custom" <?= ($selectedPeriod ?? '') === 'custom' ? 'selected' : '' ?>>Custom Range</option>
+                            <option value="all" <?= ($selectedPeriod ?? 'all') === 'all' ? 'selected' : '' ?>>All Records
+                            </option>
+                            <option value="last_week" <?= ($selectedPeriod ?? '') === 'last_week' ? 'selected' : '' ?>>Last
+                                Week</option>
+                            <option value="last_month" <?= ($selectedPeriod ?? '') === 'last_month' ? 'selected' : '' ?>>
+                                Last Month</option>
+                            <option value="last_year" <?= ($selectedPeriod ?? '') === 'last_year' ? 'selected' : '' ?>>Last
+                                Year</option>
+                            <option value="custom" <?= ($selectedPeriod ?? '') === 'custom' ? 'selected' : '' ?>>Custom
+                                Range</option>
                         </select>
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Start Date</label>
-                        <input type="date" name="start_date" id="financialStartDate" class="form-control" value="<?= $startDate ?>">
+                        <input type="date" name="start_date" id="financialStartDate" class="form-control"
+                            value="<?= $startDate ?>">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">End Date</label>
-                        <input type="date" name="end_date" id="financialEndDate" class="form-control" value="<?= $endDate ?>">
+                        <input type="date" name="end_date" id="financialEndDate" class="form-control"
+                            value="<?= $endDate ?>">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label">Currency</label>
                         <select name="currency" class="form-select">
                             <option value="">All Currencies</option>
-                            <option value="LRD" <?= ($selectedCurrency ?? '') === 'LRD' ? 'selected' : '' ?>>LRD Only</option>
-                            <option value="USD" <?= ($selectedCurrency ?? '') === 'USD' ? 'selected' : '' ?>>USD Only</option>
+                            <option value="LRD" <?= ($selectedCurrency ?? '') === 'LRD' ? 'selected' : '' ?>>LRD Only
+                            </option>
+                            <option value="USD" <?= ($selectedCurrency ?? '') === 'USD' ? 'selected' : '' ?>>USD Only
+                            </option>
                         </select>
                     </div>
                     <div class="col-md-2">
@@ -45,9 +54,9 @@ $expenseEntryCount = count($expense_log);
                         <select name="category" class="form-select">
                             <option value="">All Categories</option>
                             <?php foreach ($expenseCategories as $category): ?>
-                            <option value="<?= $category['id'] ?>" <?= ($selectedCategory ?? '') == $category['id'] ? 'selected' : '' ?>>
-                                <?= esc($category['category_name']) ?>
-                            </option>
+                                <option value="<?= $category['id'] ?>" <?= ($selectedCategory ?? '') == $category['id'] ? 'selected' : '' ?>>
+                                    <?= esc($category['category_name']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -56,9 +65,9 @@ $expenseEntryCount = count($expense_log);
                         <select name="created_by" class="form-select">
                             <option value="">All Users</option>
                             <?php foreach ($users as $user): ?>
-                            <option value="<?= $user['id'] ?>" <?= ($selectedUser ?? '') == $user['id'] ? 'selected' : '' ?>>
-                                <?= esc($user['full_name']) ?>
-                            </option>
+                                <option value="<?= $user['id'] ?>" <?= ($selectedUser ?? '') == $user['id'] ? 'selected' : '' ?>>
+                                    <?= esc($user['full_name']) ?>
+                                </option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -74,7 +83,8 @@ $expenseEntryCount = count($expense_log);
                             </button>
                         </div>
                         <small class="text-muted d-block mt-2">
-                            Revenue, COGS, and net profit follow the selected date range and currency. Expense category and recorded-by filters refine the expense analysis sections.
+                            Revenue, COGS, and net profit follow the selected date range and currency. Expense category
+                            and recorded-by filters refine the expense analysis sections.
                         </small>
                     </div>
                 </form>
@@ -106,7 +116,8 @@ $expenseEntryCount = count($expense_log);
                             </div>
                         </div>
                         <div class="col-md-3 mb-3">
-                            <div class="card <?= $net_profit[$activeCurrency] >= 0 ? 'bg-success' : 'bg-dark' ?> text-white h-100">
+                            <div
+                                class="card <?= $net_profit[$activeCurrency] >= 0 ? 'bg-success' : 'bg-dark' ?> text-white h-100">
                                 <div class="card-body">
                                     <h6 class="card-title">Net Profit</h6>
                                     <h3><?= formatCurrency($net_profit[$activeCurrency], $activeCurrency) ?></h3>
@@ -227,20 +238,33 @@ $expenseEntryCount = count($expense_log);
                                             </tr>
                                             <tr>
                                                 <td>Gross Profit</td>
-                                                <td class="text-end"><?= formatCurrency($gross_profit['LRD'], 'LRD') ?></td>
-                                                <td class="text-end"><?= formatCurrency($gross_profit['USD'], 'USD') ?></td>
+                                                <td class="text-end"><?= formatCurrency($gross_profit['LRD'], 'LRD') ?>
+                                                </td>
+                                                <td class="text-end"><?= formatCurrency($gross_profit['USD'], 'USD') ?>
+                                                </td>
                                             </tr>
                                             <tr>
                                                 <td>Expenses</td>
                                                 <td class="text-end"><?= formatCurrency($expenses['LRD'], 'LRD') ?></td>
                                                 <td class="text-end"><?= formatCurrency($expenses['USD'], 'USD') ?></td>
                                             </tr>
+                                            <tr>
+                                                <td>Adjustments (losses)</td>
+                                                <td class="text-end">
+                                                    <?= formatCurrency($adjustment_summary['LRD']['total'] ?? 0, 'LRD') ?>
+                                                </td>
+                                                <td class="text-end">
+                                                    <?= formatCurrency($adjustment_summary['USD']['total'] ?? 0, 'USD') ?>
+                                                </td>
+                                            </tr>
                                             <tr class="table-active">
                                                 <td><strong>Net Profit</strong></td>
-                                                <td class="text-end fw-bold <?= $net_profit['LRD'] >= 0 ? 'text-success' : 'text-danger' ?>">
+                                                <td
+                                                    class="text-end fw-bold <?= $net_profit['LRD'] >= 0 ? 'text-success' : 'text-danger' ?>">
                                                     <?= formatCurrency($net_profit['LRD'], 'LRD') ?>
                                                 </td>
-                                                <td class="text-end fw-bold <?= $net_profit['USD'] >= 0 ? 'text-success' : 'text-danger' ?>">
+                                                <td
+                                                    class="text-end fw-bold <?= $net_profit['USD'] >= 0 ? 'text-success' : 'text-danger' ?>">
                                                     <?= formatCurrency($net_profit['USD'], 'USD') ?>
                                                 </td>
                                             </tr>
@@ -248,7 +272,8 @@ $expenseEntryCount = count($expense_log);
                                     </table>
                                 </div>
                                 <div class="alert alert-info mt-3 mb-0">
-                                    Estimated COGS is derived from product purchase prices and sales exchange rates where needed.
+                                    Estimated COGS is derived from product purchase prices and sales exchange rates
+                                    where needed.
                                 </div>
                             </div>
                         </div>
@@ -274,12 +299,15 @@ $expenseEntryCount = count($expense_log);
                                         </thead>
                                         <tbody>
                                             <?php foreach ($expenses_by_category as $item): ?>
-                                            <tr>
-                                                <td><?= esc($item['category_name']) ?></td>
-                                                <td><span class="badge bg-secondary"><?= esc($item['currency']) ?></span></td>
-                                                <td class="text-end"><?= number_format($item['expense_count']) ?></td>
-                                                <td class="text-end fw-bold"><?= formatCurrency($item['total_amount'], $item['currency']) ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td><?= esc($item['category_name']) ?></td>
+                                                    <td><span
+                                                            class="badge bg-secondary"><?= esc($item['currency']) ?></span>
+                                                    </td>
+                                                    <td class="text-end"><?= number_format($item['expense_count']) ?></td>
+                                                    <td class="text-end fw-bold">
+                                                        <?= formatCurrency($item['total_amount'], $item['currency']) ?></td>
+                                                </tr>
                                             <?php endforeach; ?>
                                         </tbody>
                                     </table>
@@ -305,12 +333,15 @@ $expenseEntryCount = count($expense_log);
                                         </thead>
                                         <tbody>
                                             <?php foreach ($expenses_by_user as $item): ?>
-                                            <tr>
-                                                <td><?= esc($item['full_name'] ?: 'Unknown') ?></td>
-                                                <td><span class="badge bg-secondary"><?= esc($item['currency']) ?></span></td>
-                                                <td class="text-end"><?= number_format($item['expense_count']) ?></td>
-                                                <td class="text-end fw-bold"><?= formatCurrency($item['total_amount'], $item['currency']) ?></td>
-                                            </tr>
+                                                <tr>
+                                                    <td><?= esc($item['full_name'] ?: 'Unknown') ?></td>
+                                                    <td><span
+                                                            class="badge bg-secondary"><?= esc($item['currency']) ?></span>
+                                                    </td>
+                                                    <td class="text-end"><?= number_format($item['expense_count']) ?></td>
+                                                    <td class="text-end fw-bold">
+                                                        <?= formatCurrency($item['total_amount'], $item['currency']) ?></td>
+                                                </tr>
                                             <?php endforeach; ?>
                                         </tbody>
                                     </table>
@@ -341,36 +372,39 @@ $expenseEntryCount = count($expense_log);
                                 </thead>
                                 <tbody>
                                     <?php foreach ($expense_log as $expense): ?>
-                                    <tr>
-                                        <td><?= date('Y-m-d', strtotime($expense['expense_date'])) ?></td>
-                                        <td><span class="badge bg-secondary"><?= esc($expense['category_name']) ?></span></td>
-                                        <td><?= esc($expense['description'] ?: '-') ?></td>
-                                        <td class="text-end fw-bold"><?= formatCurrency($expense['amount'], $expense['currency']) ?></td>
-                                        <td><?= esc($expense['currency']) ?></td>
-                                        <td><?= esc($expense['created_by_name'] ?: 'Unknown') ?></td>
-                                        <td><?= date('M d, Y H:i', strtotime($expense['created_at'])) ?></td>
-                                        <td>
-                                            <button
-                                                type="button"
-                                                class="btn btn-sm btn-outline-primary view-expense-detail"
-                                                data-id="<?= $expense['id'] ?>"
-                                                data-category="<?= esc($expense['category_name'], 'attr') ?>"
-                                                data-date="<?= esc($expense['expense_date'], 'attr') ?>"
-                                                data-description="<?= esc($expense['description'] ?: '-', 'attr') ?>"
-                                                data-amount="<?= esc(number_format((float) $expense['amount'], 2, '.', ''), 'attr') ?>"
-                                                data-currency="<?= esc($expense['currency'], 'attr') ?>"
-                                                data-created-by="<?= esc($expense['created_by_name'] ?: 'Unknown', 'attr') ?>"
-                                                data-created-at="<?= esc(date('M d, Y H:i', strtotime($expense['created_at'])), 'attr') ?>"
-                                                data-updated-by="<?= esc($expense['updated_by_name'] ?: '-', 'attr') ?>"
-                                                data-updated-at="<?= esc($expense['updated_at'] ? date('M d, Y H:i', strtotime($expense['updated_at'])) : '-', 'attr') ?>"
-                                                data-receipt="<?= esc($expense['receipt_image'] ? base_url($expense['receipt_image']) : '', 'attr') ?>">
-                                                <i class="bi bi-eye"></i> View
-                                            </button>
-                                            <a href="<?= base_url('expenses/edit/' . $expense['id']) ?>" class="btn btn-sm btn-outline-secondary">
-                                                <i class="bi bi-pencil"></i> Edit
-                                            </a>
-                                        </td>
-                                    </tr>
+                                        <tr>
+                                            <td><?= date('Y-m-d', strtotime($expense['expense_date'])) ?></td>
+                                            <td><span
+                                                    class="badge bg-secondary"><?= esc($expense['category_name']) ?></span>
+                                            </td>
+                                            <td><?= esc($expense['description'] ?: '-') ?></td>
+                                            <td class="text-end fw-bold">
+                                                <?= formatCurrency($expense['amount'], $expense['currency']) ?></td>
+                                            <td><?= esc($expense['currency']) ?></td>
+                                            <td><?= esc($expense['created_by_name'] ?: 'Unknown') ?></td>
+                                            <td><?= date('M d, Y H:i', strtotime($expense['created_at'])) ?></td>
+                                            <td>
+                                                <button type="button"
+                                                    class="btn btn-sm btn-outline-primary view-expense-detail"
+                                                    data-id="<?= $expense['id'] ?>"
+                                                    data-category="<?= esc($expense['category_name'], 'attr') ?>"
+                                                    data-date="<?= esc($expense['expense_date'], 'attr') ?>"
+                                                    data-description="<?= esc($expense['description'] ?: '-', 'attr') ?>"
+                                                    data-amount="<?= esc(number_format((float) $expense['amount'], 2, '.', ''), 'attr') ?>"
+                                                    data-currency="<?= esc($expense['currency'], 'attr') ?>"
+                                                    data-created-by="<?= esc($expense['created_by_name'] ?: 'Unknown', 'attr') ?>"
+                                                    data-created-at="<?= esc(date('M d, Y H:i', strtotime($expense['created_at'])), 'attr') ?>"
+                                                    data-updated-by="<?= esc($expense['updated_by_name'] ?: '-', 'attr') ?>"
+                                                    data-updated-at="<?= esc($expense['updated_at'] ? date('M d, Y H:i', strtotime($expense['updated_at'])) : '-', 'attr') ?>"
+                                                    data-receipt="<?= esc($expense['receipt_image'] ? base_url($expense['receipt_image']) : '', 'attr') ?>">
+                                                    <i class="bi bi-eye"></i> View
+                                                </button>
+                                                <a href="<?= base_url('expenses/edit/' . $expense['id']) ?>"
+                                                    class="btn btn-sm btn-outline-secondary">
+                                                    <i class="bi bi-pencil"></i> Edit
+                                                </a>
+                                            </td>
+                                        </tr>
                                     <?php endforeach; ?>
                                 </tbody>
                             </table>
@@ -440,172 +474,172 @@ $expenseEntryCount = count($expense_log);
 </div>
 
 <script>
-let financialChart;
+    let financialChart;
 
-$(document).ready(function() {
-    toggleFinancialCustomDates();
-    renderFinancialChart();
-
-    initFinancialTable('#expenseCategoryTable', [[3, 'desc']]);
-    initFinancialTable('#expenseUserTable', [[3, 'desc']]);
-    initFinancialTable('#expenseLogTable', [[0, 'desc']]);
-
-    $('#financialPeriodFilter').on('change', function() {
+    $(document).ready(function () {
         toggleFinancialCustomDates();
+        renderFinancialChart();
+
+        initFinancialTable('#expenseCategoryTable', [[3, 'desc']]);
+        initFinancialTable('#expenseUserTable', [[3, 'desc']]);
+        initFinancialTable('#expenseLogTable', [[0, 'desc']]);
+
+        $('#financialPeriodFilter').on('change', function () {
+            toggleFinancialCustomDates();
+        });
+
+        $(document).on('click', '.view-expense-detail', function () {
+            const button = $(this);
+            $('#expenseDetailCategory').text(button.attr('data-category'));
+            $('#expenseDetailDate').text(button.attr('data-date'));
+            $('#expenseDetailAmount').text(button.attr('data-currency') + ' ' + Number(button.attr('data-amount')).toLocaleString());
+            $('#expenseDetailCreatedBy').text(button.attr('data-created-by'));
+            $('#expenseDetailCreatedAt').text(button.attr('data-created-at'));
+            $('#expenseDetailUpdatedAt').text(button.attr('data-updated-by') + ' / ' + button.attr('data-updated-at'));
+            $('#expenseDetailDescription').text(button.attr('data-description'));
+
+            const receipt = button.attr('data-receipt');
+            if (receipt) {
+                $('#expenseDetailReceipt').attr('href', receipt);
+                $('#expenseDetailReceiptWrapper').show();
+            } else {
+                $('#expenseDetailReceipt').attr('href', '#');
+                $('#expenseDetailReceiptWrapper').hide();
+            }
+
+            new bootstrap.Modal(document.getElementById('expenseDetailModal')).show();
+        });
     });
 
-    $(document).on('click', '.view-expense-detail', function() {
-        const button = $(this);
-        $('#expenseDetailCategory').text(button.attr('data-category'));
-        $('#expenseDetailDate').text(button.attr('data-date'));
-        $('#expenseDetailAmount').text(button.attr('data-currency') + ' ' + Number(button.attr('data-amount')).toLocaleString());
-        $('#expenseDetailCreatedBy').text(button.attr('data-created-by'));
-        $('#expenseDetailCreatedAt').text(button.attr('data-created-at'));
-        $('#expenseDetailUpdatedAt').text(button.attr('data-updated-by') + ' / ' + button.attr('data-updated-at'));
-        $('#expenseDetailDescription').text(button.attr('data-description'));
+    function toggleFinancialCustomDates() {
+        const isCustom = $('#financialPeriodFilter').val() === 'custom';
+        $('#financialStartDate, #financialEndDate').prop('disabled', !isCustom);
+    }
 
-        const receipt = button.attr('data-receipt');
-        if (receipt) {
-            $('#expenseDetailReceipt').attr('href', receipt);
-            $('#expenseDetailReceiptWrapper').show();
-        } else {
-            $('#expenseDetailReceipt').attr('href', '#');
-            $('#expenseDetailReceiptWrapper').hide();
+    function initFinancialTable(selector, order) {
+        if (!$.fn.DataTable.isDataTable(selector)) {
+            $(selector).DataTable({
+                pageLength: 20,
+                lengthChange: false,
+                ordering: true,
+                searching: true,
+                info: true,
+                order: order
+            });
+        }
+    }
+
+    function renderFinancialChart() {
+        const chartElement = document.getElementById('financialChart');
+        if (!chartElement) {
+            return;
         }
 
-        new bootstrap.Modal(document.getElementById('expenseDetailModal')).show();
-    });
-});
+        const chartData = <?= json_encode($financial_trend) ?>;
+        if (!chartData || !chartData.labels || !chartData.labels.length) {
+            return;
+        }
 
-function toggleFinancialCustomDates() {
-    const isCustom = $('#financialPeriodFilter').val() === 'custom';
-    $('#financialStartDate, #financialEndDate').prop('disabled', !isCustom);
-}
+        const totalLabels = chartData.labels.length;
+        const maxTicks = totalLabels <= 7 ? totalLabels : (totalLabels <= 31 ? 8 : 12);
+        const ctx = chartElement.getContext('2d');
 
-function initFinancialTable(selector, order) {
-    if (!$.fn.DataTable.isDataTable(selector)) {
-        $(selector).DataTable({
-            pageLength: 20,
-            lengthChange: false,
-            ordering: true,
-            searching: true,
-            info: true,
-            order: order
-        });
-    }
-}
-
-function renderFinancialChart() {
-    const chartElement = document.getElementById('financialChart');
-    if (!chartElement) {
-        return;
-    }
-
-    const chartData = <?= json_encode($financial_trend) ?>;
-    if (!chartData || !chartData.labels || !chartData.labels.length) {
-        return;
-    }
-
-    const totalLabels = chartData.labels.length;
-    const maxTicks = totalLabels <= 7 ? totalLabels : (totalLabels <= 31 ? 8 : 12);
-    const ctx = chartElement.getContext('2d');
-
-    financialChart = new Chart(ctx, {
-        type: chartData.mode === 'summary' ? 'bar' : 'line',
-        data: {
-            labels: chartData.labels,
-            datasets: chartData.datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    ticks: {
-                        autoSkip: true,
-                        maxTicksLimit: maxTicks,
-                        maxRotation: totalLabels > 12 ? 45 : 0,
-                        minRotation: 0,
-                        callback: function(value) {
-                            return formatFinancialChartLabel(this.getLabelForValue(value), chartData);
-                        }
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        callback: function(value) {
-                            return value.toLocaleString();
-                        }
-                    }
-                }
+        financialChart = new Chart(ctx, {
+            type: chartData.mode === 'summary' ? 'bar' : 'line',
+            data: {
+                labels: chartData.labels,
+                datasets: chartData.datasets
             },
-            plugins: {
-                tooltip: {
-                    callbacks: {
-                        title: function(context) {
-                            if (!context.length) {
-                                return '';
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    x: {
+                        ticks: {
+                            autoSkip: true,
+                            maxTicksLimit: maxTicks,
+                            maxRotation: totalLabels > 12 ? 45 : 0,
+                            minRotation: 0,
+                            callback: function (value) {
+                                return formatFinancialChartLabel(this.getLabelForValue(value), chartData);
                             }
-
-                            return formatFinancialTooltipTitle(context[0].label, chartData);
-                        },
-                        label: function(context) {
-                            const currency = chartData.currency || context.dataset.label;
-                            return context.dataset.label + ': ' + currency + ' ' + context.parsed.y.toLocaleString();
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function (value) {
+                                return value.toLocaleString();
+                            }
                         }
                     }
                 },
-                legend: {
-                    position: 'top'
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            title: function (context) {
+                                if (!context.length) {
+                                    return '';
+                                }
+
+                                return formatFinancialTooltipTitle(context[0].label, chartData);
+                            },
+                            label: function (context) {
+                                const currency = chartData.currency || context.dataset.label;
+                                return context.dataset.label + ': ' + currency + ' ' + context.parsed.y.toLocaleString();
+                            }
+                        }
+                    },
+                    legend: {
+                        position: 'top'
+                    }
                 }
             }
+        });
+    }
+
+    function formatFinancialChartLabel(label, chartData) {
+        if (!label) {
+            return '';
         }
-    });
-}
 
-function formatFinancialChartLabel(label, chartData) {
-    if (!label) {
-        return '';
+        if (chartData.mode === 'summary') {
+            return label;
+        }
+
+        if (chartData.bucket === 'month') {
+            const date = new Date(label + '-01T00:00:00');
+            return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+        }
+
+        const date = new Date(label + 'T00:00:00');
+        return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
     }
 
-    if (chartData.mode === 'summary') {
-        return label;
+    function formatFinancialTooltipTitle(label, chartData) {
+        if (!label || chartData.mode === 'summary') {
+            return label;
+        }
+
+        if (chartData.bucket === 'month') {
+            const date = new Date(label + '-01T00:00:00');
+            return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        }
+
+        const date = new Date(label + 'T00:00:00');
+        return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
     }
 
-    if (chartData.bucket === 'month') {
-        const date = new Date(label + '-01T00:00:00');
-        return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { month: 'short', year: '2-digit' });
+    function exportFinancialReport(type) {
+        const params = new URLSearchParams(window.location.search);
+        params.set('type', type);
+
+        const url = '<?= base_url('reports/financial/export') ?>?' + params.toString();
+        if (type === 'pdf') {
+            window.open(url, '_blank');
+        } else {
+            window.location.href = url;
+        }
     }
-
-    const date = new Date(label + 'T00:00:00');
-    return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-
-function formatFinancialTooltipTitle(label, chartData) {
-    if (!label || chartData.mode === 'summary') {
-        return label;
-    }
-
-    if (chartData.bucket === 'month') {
-        const date = new Date(label + '-01T00:00:00');
-        return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
-    }
-
-    const date = new Date(label + 'T00:00:00');
-    return Number.isNaN(date.getTime()) ? label : date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
-}
-
-function exportFinancialReport(type) {
-    const params = new URLSearchParams(window.location.search);
-    params.set('type', type);
-
-    const url = '<?= base_url('reports/financial/export') ?>?' + params.toString();
-    if (type === 'pdf') {
-        window.open(url, '_blank');
-    } else {
-        window.location.href = url;
-    }
-}
 </script>
 <?= $this->endSection() ?>

@@ -41,7 +41,8 @@ class Purchases extends BaseController
             'title' => 'Purchases',
             'purchases' => $this->purchaseModel->orderBy('created_at', 'DESC')->paginate(20),
             'pager' => $this->purchaseModel->pager,
-            'activePage' => 'purchases'
+            'activePage' => 'purchases',
+            'activeSubPage' => 'purchases'
         ];
         
         return view('purchases/index', $data);
@@ -57,7 +58,8 @@ class Purchases extends BaseController
             'suppliers' => $this->supplierModel->orderBy('supplier_name', 'ASC')->findAll(),
             'products' => $this->productModel->findAll(),
             'purchase_number' => $this->purchaseModel->generatePurchaseNumber(),
-            'activePage' => 'purchases'
+            'activePage' => 'purchases',
+            'activeSubPage' => 'create'
         ];
         
         return view('purchases/create', $data);

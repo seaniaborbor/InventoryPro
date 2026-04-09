@@ -28,7 +28,8 @@ class Customers extends BaseController
         $data = [
             'title' => 'Customers',
             'customers' => $this->customerModel->getAllWithStats(),
-            'activePage' => 'sales'
+            'activePage' => 'sales',
+            'activeSubPage' => 'customers'
         ];
         
         return view('customers/index', $data);
@@ -109,6 +110,9 @@ class Customers extends BaseController
             'customer' => $customer,
             'activePage' => 'sales'
         ];
+
+        // print_r($customer); // Debugging line - remove in production
+        // exit();
         
         return view('customers/edit', $data);
     }

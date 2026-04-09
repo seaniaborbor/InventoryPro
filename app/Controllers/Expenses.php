@@ -72,7 +72,8 @@ class Expenses extends BaseController
             'endDate' => $endDate,
             'selectedCategory' => $categoryId,
             'selectedCurrency' => $currency,
-            'activePage' => 'expenses'
+            'activePage' => 'expenses',
+            'activeSubPage' => 'expenses'
         ];
         
         return view('expenses/index', $data);
@@ -86,7 +87,8 @@ class Expenses extends BaseController
         $data = [
             'title' => 'Add Expense',
             'categories' => $this->expenseCategoryModel->findAll(),
-            'activePage' => 'expenses'
+            'activePage' => 'expenses',
+            'activeSubPage' => 'create'
         ];
         
         return view('expenses/create', $data);
@@ -300,7 +302,8 @@ class Expenses extends BaseController
         $data = [
             'title' => 'Expense Categories',
             'categories' => $this->expenseCategoryModel->getAllWithExpenseCount(),
-            'activePage' => 'expenses'
+            'activePage' => 'expenses',
+            'activeSubPage' => 'categories'
         ];
         
         return view('expenses/categories', $data);

@@ -43,7 +43,8 @@ class Inventory extends BaseController
             'categories' => $this->categoryModel->findAll(),
             'units' => $this->unitModel->findAll(),
             'suppliers' => $this->supplierModel->findAll(),
-            'activePage' => 'inventory'
+            'activePage' => 'inventory',
+            'activeSubPage' => 'products'
         ];
 
         return view('inventory/products', $data);
@@ -397,7 +398,8 @@ class Inventory extends BaseController
         $data = [
             'title' => 'Categories',
             'categories' => $this->categoryModel->getAllWithProductCounts(),
-            'activePage' => 'inventory'
+            'activePage' => 'inventory',
+            'activeSubPage' => 'categories'
         ];
 
         return view('inventory/categories', $data);
@@ -540,7 +542,8 @@ class Inventory extends BaseController
         $data = [
             'title' => 'Stock Adjustments',
             'products' => $this->productModel->findAll(),
-            'activePage' => 'inventory'
+            'activePage' => 'inventory',
+            'activeSubPage' => 'stock-adjustments'
         ];
 
         return view('inventory/stock_adjustments', $data);
@@ -675,7 +678,8 @@ class Inventory extends BaseController
         $data = [
             'title' => 'Low Stock Items',
             'products' => $this->productModel->getLowStockItems(),
-            'activePage' => 'inventory'
+            'activePage' => 'inventory',
+            'activeSubPage' => 'low-stock'
         ];
 
         return view('inventory/low_stock', $data);

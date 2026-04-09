@@ -13,9 +13,9 @@ class ProductionJobModel extends Model
     protected $useSoftDeletes   = true;
     protected $protectFields    = true;
     protected $allowedFields    = [
-        'job_reference', 'job_name', 'production_date', 'finished_product_id',
-        'quantity_produced', 'total_material_cost', 'currency', 'exchange_rate',
-        'notes', 'status', 'created_by', 'updated_by'
+        'job_reference', 'job_name', 'customer_id', 'production_date', 'finished_product_id',
+        'production_category_id', 'quantity_produced', 'total_material_cost', 'currency', 'exchange_rate',
+        'notes', 'status', 'payment_status', 'amount_paid', 'created_by', 'updated_by'
     ];
 
     // Dates
@@ -32,17 +32,38 @@ class ProductionJobModel extends Model
     {
         $job = $this->find($jobId);
         if (!$job) return null;
-        
+
         // Get materials used
         $materialModel = new ProductionMaterialModel();
         $job['materials'] = $materialModel->getMaterialsWithProducts($jobId);
-        
-        // Get finished product
-        if ($job['finished_product_id']) {
-            $productModel = new ProductModel();
-            $job['finished_product'] = $productModel->find($job['finished_product_id']);
+
+        // Get category name
+        if ($job['production_category_id']) {
+            $categoryModel = new \App\Models\ProductionCategoryModel();
+            $category = $categoryModel->find($job['production_category_id']);
+            $job['category_name'] = $category ? $category['category_name'] : 'Unknown';
         }
-        
+
+        // Get customer name
+        if ($job['customer_id']) {
+            $customerModel = new \App\Models\CustomerModel();
+            $customer = $customerModel->find($job['customer_id']);
+            $job['customer_name'] = $customer ? $customer['customer_name'] : 'Unknown';
+        }
+
+        // Get creator and updater user info
+        $userModel = new \App\Models\UserModel();
+        if ($job['created_by']) {
+            $creator = $userModel->find($job['created_by']);
+            $job['creator_name'] = $creator ? $creator['full_name'] : 'Unknown';
+            $job['created_at_display'] = $job['created_at'] ? date('M j, Y H:i', strtotime($job['created_at'])) : '';
+        }
+        if ($job['updated_by']) {
+            $updater = $userModel->find($job['updated_by']);
+            $job['updater_name'] = $updater ? $updater['full_name'] : 'Unknown';
+            $job['updated_at_display'] = $job['updated_at'] ? date('M j, Y H:i', strtotime($job['updated_at'])) : '';
+        }
+
         return $job;
     }
 

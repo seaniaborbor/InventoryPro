@@ -16,13 +16,24 @@
                     <?= csrf_field() ?>
                     
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Job Reference</label>
                             <input type="text" class="form-control" value="<?= esc($job_reference) ?>" readonly>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="job_name" class="form-label">Job Name *</label>
                             <input type="text" class="form-control" id="job_name" name="job_name" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="customer_id" class="form-label">Customer</label>
+                            <select class="form-select" id="customer_id" name="customer_id">
+                                <option value="">Select Customer</option>
+                                <?php foreach ($customers as $customer): ?>
+                                    <option value="<?= $customer['id'] ?>">
+                                        <?= esc($customer['customer_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
                     
@@ -33,12 +44,12 @@
                                    value="<?= date('Y-m-d') ?>" required>
                         </div>
                         <div class="col-md-4">
-                            <label for="finished_product_id" class="form-label">Finished Product</label>
-                            <select class="form-select" id="finished_product_id" name="finished_product_id">
-                                <option value="">None (Consumable materials only)</option>
-                                <?php foreach ($products as $product): ?>
-                                    <option value="<?= $product['id'] ?>">
-                                        <?= esc($product['product_name']) ?> (SKU: <?= esc($product['sku']) ?>)
+                            <label for="production_category_id" class="form-label">Category</label>
+                            <select class="form-select" id="production_category_id" name="production_category_id">
+                                <option value="">Select Category</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?= $category['id'] ?>">
+                                        <?= esc($category['category_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -51,14 +62,37 @@
                     </div>
                     
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label for="currency" class="form-label">Currency</label>
                             <select class="form-select" id="currency" name="currency">
                                 <option value="LRD">LRD - Liberian Dollar</option>
                                 <option value="USD">USD - US Dollar</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Draft">Draft</option>
+                                <option value="Completed">Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="payment_status" class="form-label">Payment Status</label>
+                            <select class="form-select" id="payment_status" name="payment_status">
+                                <option value="Unpaid">Unpaid</option>
+                                <option value="Partially Paid">Partially Paid</option>
+                                <option value="Paid">Paid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="amount_paid" class="form-label">Amount Paid</label>
+                            <input type="number" step="0.01" min="0" class="form-control"
+                                   id="amount_paid" name="amount_paid" value="0">
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-12">
                             <label for="bom_template" class="form-label">Load from Template</label>
                             <div class="input-group">
                                 <select class="form-select" id="bom_template">
@@ -141,6 +175,19 @@ $(document).ready(function() {
         $('#material_cost').val(price);
     });
 
+    // Auto-update payment status based on amount paid
+    $('#amount_paid').on('change', function() {
+        const amountPaid = parseFloat($(this).val()) || 0;
+        const totalCost = parseFloat($('#totalCost').text().replace(/,/g, '')) || 0;
+        if (amountPaid <= 0) {
+            $('#payment_status').val('Unpaid');
+        } else if (totalCost > 0 && amountPaid >= totalCost) {
+            $('#payment_status').val('Paid');
+        } else if (amountPaid > 0) {
+            $('#payment_status').val('Partially Paid');
+        }
+    });
+
     // FORM SUBMIT - Enhanced with debugging
     $('#productionForm').on('submit', function(e) {
         e.preventDefault();
@@ -152,11 +199,14 @@ $(document).ready(function() {
 
         const formData = {
             job_name: $('#job_name').val().trim(),
+            customer_id: $('#customer_id').val() || null,
             production_date: $('#production_date').val(),
-            finished_product_id: $('#finished_product_id').val() || null,
             quantity_produced: parseFloat($('#quantity_produced').val()) || 0,
             currency: $('#currency').val(),
             notes: $('#notes').val().trim(),
+            status: $('#status').val(),
+            payment_status: $('#payment_status').val(),
+            amount_paid: parseFloat($('#amount_paid').val()) || 0,
             materials: materials
         };
 

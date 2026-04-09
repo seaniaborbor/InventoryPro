@@ -3,32 +3,42 @@
 namespace App\Controllers;
 
 use App\Models\ProductionJobModel;
+use App\Models\ProductionJobItemModel;
 use App\Models\ProductionMaterialModel;
 use App\Models\BomTemplateModel;
 use App\Models\BomTemplateItemModel;
 use App\Models\ProductModel;
 use App\Models\StockMovementModel;
 use App\Models\AuditLogModel;
+use App\Models\ProductionCategoryModel;
+use App\Models\CustomerModel;
 
 class Production extends BaseController
 {
     protected $productionJobModel;
+    protected $productionJobItemModel;
     protected $productionMaterialModel;
     protected $bomTemplateModel;
     protected $bomTemplateItemModel;
     protected $productModel;
     protected $stockMovementModel;
     protected $auditLogModel;
+    protected $productionCategoryModel;
+
+    protected $customerModel;
 
     public function __construct()
     {
         $this->productionJobModel = new ProductionJobModel();
+        $this->productionJobItemModel = new ProductionJobItemModel();
         $this->productionMaterialModel = new ProductionMaterialModel();
-        $this->bomTemplateModel = new BomTemplateModel(); // Now exists
-        $this->bomTemplateItemModel = new BomTemplateItemModel(); // Now exists
+        $this->bomTemplateModel = new BomTemplateModel();
+        $this->bomTemplateItemModel = new BomTemplateItemModel();
         $this->productModel = new ProductModel();
         $this->stockMovementModel = new StockMovementModel();
         $this->auditLogModel = new AuditLogModel();
+        $this->productionCategoryModel = new ProductionCategoryModel();
+        $this->customerModel = new CustomerModel();
 
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
@@ -58,12 +68,80 @@ class Production extends BaseController
      */
     public function jobs()
     {
+        // Get filter parameters
+        $status = $this->request->getGet('status');
+        $customerId = $this->request->getGet('customer_id');
+        $categoryId = $this->request->getGet('category_id');
+        $dateFrom = $this->request->getGet('date_from');
+        $dateTo = $this->request->getGet('date_to');
+        $search = $this->request->getGet('search');
+
+        // Build query with filters
+        $builder = $this->productionJobModel->builder();
+
+        if ($status && $status !== 'all') {
+            $builder->where('status', $status);
+        }
+
+        if ($customerId) {
+            $builder->where('customer_id', $customerId);
+        }
+
+        if ($categoryId) {
+            $builder->where('production_category_id', $categoryId);
+        }
+
+        if ($dateFrom) {
+            $builder->where('production_date >=', $dateFrom);
+        }
+
+        if ($dateTo) {
+            $builder->where('production_date <=', $dateTo);
+        }
+
+        if ($search) {
+            $builder->groupStart()
+                ->like('job_reference', $search)
+                ->orLike('job_name', $search)
+                ->orLike('notes', $search)
+                ->groupEnd();
+        }
+
         $data = [
             'title' => 'Production Jobs',
             'jobs' => $this->productionJobModel->orderBy('created_at', 'DESC')->paginate(20),
             'pager' => $this->productionJobModel->pager,
-            'activePage' => 'production'
+            'activePage' => 'production',
+            'activeSubPage' => 'jobs',
+            // Filter data for the view
+            'filters' => [
+                'status' => $status,
+                'customer_id' => $customerId,
+                'category_id' => $categoryId,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
+                'search' => $search
+            ],
+            'customers' => $this->customerModel->findAll(),
+            'categories' => $this->productionCategoryModel->findAll()
         ];
+
+        // Add customer names, category names, and last editor
+        foreach ($data['jobs'] as &$job) {
+            if ($job['customer_id']) {
+                $customer = $this->customerModel->find($job['customer_id']);
+                $job['customer_name'] = $customer ? $customer['customer_name'] : '—';
+            }
+            if ($job['production_category_id']) {
+                $category = $this->productionCategoryModel->find($job['production_category_id']);
+                $job['category_name'] = $category ? $category['category_name'] : '—';
+            }
+            if ($job['updated_by']) {
+                $db = \Config\Database::connect();
+                $user = $db->table('users')->select('full_name')->where('id', $job['updated_by'])->get()->getFirstRow();
+                $job['updater_name'] = $user ? $user->full_name : 'Unknown';
+            }
+        }
 
         return view('production/jobs', $data);
     }
@@ -76,9 +154,12 @@ class Production extends BaseController
         $data = [
             'title' => 'New Production Job',
             'products' => $this->productModel->findAll(),
+            'customers' => $this->customerModel->findAll(),
+            'categories' => $this->productionCategoryModel->findAll(),
             'bomTemplates' => $this->bomTemplateModel->findAll(),
             'job_reference' => $this->productionJobModel->generateJobReference(),
-            'activePage' => 'production'
+            'activePage' => 'production',
+            'activeSubPage' => 'create'
         ];
 
         return view('production/create', $data);
@@ -106,13 +187,16 @@ class Production extends BaseController
             $jobData = [
                 'job_reference' => $this->productionJobModel->generateJobReference(),
                 'job_name' => $json['job_name'],
+                'customer_id' => $json['customer_id'] ?? null,
                 'production_date' => $json['production_date'],
-                'finished_product_id' => $json['finished_product_id'] ?: null,
+                'production_category_id' => $json['production_category_id'] ?? null,
                 'quantity_produced' => $json['quantity_produced'] ?? 0,
                 'currency' => $json['currency'] ?? 'LRD',
                 'total_material_cost' => 0,
                 'notes' => $json['notes'] ?? '',
-                'status' => 'Draft',
+                'status' => $json['status'] === 'Completed' ? 'Completed' : 'Draft',
+                'payment_status' => $json['payment_status'] ?? 'Unpaid',
+                'amount_paid' => $json['amount_paid'] ?? 0,
                 'created_by' => session()->get('user_id') ?? 1
             ];
 
@@ -126,15 +210,61 @@ class Production extends BaseController
                 $this->productionMaterialModel->insert([
                     'production_job_id' => $jobId,
                     'product_id' => $mat['product_id'],
-                    'quantity' => $mat['quantity'],
+                    'quantity_used' => $mat['quantity'],  // Fixed: use quantity_used instead of quantity
                     'unit_cost' => $mat['unit_cost'],
-                    'total_cost' => $lineTotal
+                    'total_cost' => $lineTotal,
                 ]);
             }
 
             $this->productionJobModel->update($jobId, ['total_material_cost' => $totalCost]);
 
+            // If status is Completed, deduct inventory immediately
+            if ($json['status'] === 'Completed') {
+                $userId = session()->get('user_id') ?? 1;
+                foreach ($json['materials'] as $mat) {
+                    $product = $this->productModel->find($mat['product_id']);
+                    if (!$product) {
+                        $db->transRollback();
+                        return $this->response->setJSON([
+                            'status' => 'error',
+                            'message' => 'Product ID ' . $mat['product_id'] . ' not found.'
+                        ]);
+                    }
+                    if ($product['quantity'] < $mat['quantity']) {
+                        $db->transRollback();
+                        return $this->response->setJSON([
+                            'status' => 'error',
+                            'message' => 'Insufficient stock for: ' . $product['product_name'] .
+                                '. Required: ' . $mat['quantity'] . ', Available: ' . $product['quantity']
+                        ]);
+                    }
+                    $deducted = $this->productModel->updateStock(
+                        $mat['product_id'],
+                        $mat['quantity'],
+                        'subtract',
+                        $userId
+                    );
+                    if (!$deducted) {
+                        $db->transRollback();
+                        return $this->response->setJSON([
+                            'status' => 'error',
+                            'message' => 'Failed to deduct stock for product ID: ' . $mat['product_id']
+                        ]);
+                    }
+                }
+            }
+
             $db->transComplete();
+
+            // Audit log
+            $this->auditLogModel->log(
+                session()->get('user_id') ?? 1,
+                'production_create',
+                'ProductionJob',
+                $jobId,
+                null,
+                ['job_reference' => $jobData['job_reference'], 'total_cost' => $totalCost]
+            );
 
             return $this->response->setJSON([
                 'status' => 'success',
@@ -153,9 +283,6 @@ class Production extends BaseController
     }
 
     /**
-     * View Production Job
-     */
-    /**
      * View Production Job Details
      */
     public function view($id)
@@ -173,38 +300,7 @@ class Production extends BaseController
             'activePage' => 'production'
         ];
 
-        // print_r($data); // Debugging line to check data structure
-        // exit();
-
         return view('production/view', $data);
-    }
-
-    /**
-     * Get single job with finished product name and materials
-     */
-    public function getJobWithDetails($id)
-    {
-        // Get main job data with finished product name
-        $job = $this->select('production_jobs.*, products.product_name as finished_product_name')
-            ->join('products', 'products.id = production_jobs.finished_product_id', 'left')
-            ->where('production_jobs.id', $id)
-            ->first();
-
-        if (!$job) {
-            return null;
-        }
-
-        // Get materials for this job
-        $materials = $this->db->table('production_materials')
-            ->select('production_materials.*, products.product_name')
-            ->join('products', 'products.id = production_materials.product_id')
-            ->where('production_materials.production_job_id', $id)
-            ->get()
-            ->getResultArray();
-
-        $job['materials'] = $materials;
-
-        return $job;
     }
 
     /**
@@ -220,11 +316,9 @@ class Production extends BaseController
             'title' => 'Bill of Materials Templates',
             'templates' => $this->bomTemplateModel->findAll(),
             'products' => $this->productModel->findAll(),
-            'activePage' => 'production'
+            'activePage' => 'production',
+            'activeSubPage' => 'bom'
         ];
-
-        // print_r($data); // Debugging line to check data structure
-        // exit();
 
         return view('production/bom', $data);
     }
@@ -282,7 +376,7 @@ class Production extends BaseController
         $db->transStart();
 
         try {
-            // Insert the template — columns: template_name, description, finished_product_id, created_by
+            // Insert the template
             $templateId = $this->bomTemplateModel->insert([
                 'template_name' => $json['template_name'],
                 'description' => $json['description'] ?? '',
@@ -298,8 +392,7 @@ class Production extends BaseController
                 ]);
             }
 
-            // Insert items using addItems() — columns: bom_template_id, product_id, quantity
-            // Note: BomTemplateItemModel has no unit_cost column — cost is pulled live from products.purchase_price
+            // Insert items
             $inserted = $this->bomTemplateItemModel->addItems($templateId, $json['items']);
 
             if (!$inserted) {
@@ -389,6 +482,8 @@ class Production extends BaseController
             'title' => 'Edit Production Job #' . ($job['job_reference'] ?? $id),
             'job' => $job,
             'products' => $this->productModel->findAll(),
+            'customers' => $this->customerModel->findAll(),
+            'categories' => $this->productionCategoryModel->findAll(),
             'bomTemplates' => $this->bomTemplateModel->findAll(),
             'activePage' => 'production'
         ];
@@ -440,19 +535,21 @@ class Production extends BaseController
         $db->transStart();
 
         try {
-            // Update job record — same columns as store()
+            // Update job record
             $jobData = [
                 'job_name' => $json['job_name'],
+                'customer_id' => $json['customer_id'] ?? null,
                 'production_date' => $json['production_date'],
-                'finished_product_id' => $json['finished_product_id'] ?: null,
+                'production_category_id' => $json['production_category_id'] ?? null,
                 'quantity_produced' => $json['quantity_produced'] ?? 0,
                 'currency' => $json['currency'] ?? 'LRD',
                 'notes' => $json['notes'] ?? '',
+                'updated_by' => session()->get('user_id') ?? 1,
             ];
 
             $this->productionJobModel->update($id, $jobData);
 
-            // Delete old materials and re-insert fresh — clean approach
+            // Delete old materials and re-insert fresh
             $this->productionMaterialModel->where('production_job_id', $id)->delete();
 
             $totalCost = 0;
@@ -464,7 +561,7 @@ class Production extends BaseController
                 $this->productionMaterialModel->insert([
                     'production_job_id' => $id,
                     'product_id' => $mat['product_id'],
-                    'quantity' => $mat['quantity'],
+                    'quantity_used' => $mat['quantity'],  // Fixed: use quantity_used
                     'unit_cost' => $mat['unit_cost'],
                     'total_cost' => $lineTotal
                 ]);
@@ -475,7 +572,7 @@ class Production extends BaseController
 
             $db->transComplete();
 
-            // Audit log — mirrors the pattern from store()
+            // Audit log
             $this->auditLogModel->log(
                 session()->get('user_id') ?? 1,
                 'production_update',
@@ -503,9 +600,6 @@ class Production extends BaseController
 
     /**
      * Complete Production Job
-     * - Deducts materials from inventory (quantity_used)
-     * - Adds finished product to inventory if applicable
-     * - Logs stock movements for each material and finished product
      */
     public function complete($id)
     {
@@ -584,24 +678,6 @@ class Production extends BaseController
                 }
             }
 
-            // Add finished product to inventory if applicable
-            if ($job['finished_product_id'] && $job['quantity_produced'] > 0) {
-                $added = $this->productModel->updateStock(
-                    $job['finished_product_id'],
-                    $job['quantity_produced'],
-                    'add',
-                    $userId
-                );
-
-                if (!$added) {
-                    $db->transRollback();
-                    return $this->response->setJSON([
-                        'status' => 'error',
-                        'message' => 'Failed to add finished product to inventory.'
-                    ]);
-                }
-            }
-
             // Mark job as Completed
             $this->productionJobModel->update($id, [
                 'status' => 'Completed',
@@ -637,8 +713,6 @@ class Production extends BaseController
 
     /**
      * Cancel Production Job
-     * - Only Draft jobs can be cancelled
-     * - Does NOT touch inventory (nothing was deducted yet)
      */
     public function cancel($id)
     {
@@ -688,9 +762,6 @@ class Production extends BaseController
 
     /**
      * Delete Production Job
-     * - Only Draft or Cancelled jobs can be deleted
-     * - Deletes materials records too (hard delete since ProductionMaterialModel has no soft delete)
-     * - Soft deletes the job itself (model has useSoftDeletes = true)
      */
     public function delete($id)
     {
@@ -720,7 +791,7 @@ class Production extends BaseController
         $db->transStart();
 
         try {
-            // Hard delete materials (no soft delete on ProductionMaterialModel)
+            // Hard delete materials
             $this->productionMaterialModel
                 ->where('production_job_id', $id)
                 ->delete();
@@ -797,15 +868,14 @@ class Production extends BaseController
         $db->transStart();
 
         try {
-            // Update template — allowed fields: template_name, description, finished_product_id
+            // Update template
             $this->bomTemplateModel->update($id, [
                 'template_name' => $json['template_name'],
                 'description' => $json['description'] ?? '',
                 'finished_product_id' => $json['finished_product_id'] ?: null,
             ]);
 
-            // Replace all items — updateItems() deletes old then insertBatch new
-            // BomTemplateItemModel allowed fields: bom_template_id, product_id, quantity
+            // Replace all items
             $this->bomTemplateItemModel->updateItems($id, $json['items']);
 
             $db->transComplete();
@@ -857,10 +927,10 @@ class Production extends BaseController
         $db->transStart();
 
         try {
-            // Hard delete items first (BomTemplateItemModel has no soft delete)
+            // Hard delete items first
             $this->bomTemplateItemModel->where('bom_template_id', $id)->delete();
 
-            // Hard delete the template (BomTemplateModel also has no soft delete)
+            // Hard delete the template
             $this->bomTemplateModel->delete($id);
 
             $db->transComplete();
@@ -898,11 +968,231 @@ class Production extends BaseController
             return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid request']);
         }
 
-        $items = $this->bomTemplateItemModel->where('bom_template_id', $templateId)
+        $items = $this->bomTemplateItemModel
             ->select('bom_template_items.*, products.product_name')
             ->join('products', 'products.id = bom_template_items.product_id')
+            ->where('bom_template_items.bom_template_id', $templateId)
             ->findAll();
 
+        // Add unit_cost from product's purchase_price for the frontend
+        foreach ($items as &$item) {
+            $product = $this->productModel->find($item['product_id']);
+            $item['unit_cost'] = $product ? $product['purchase_price'] : 0;
+        }
+
         return $this->response->setJSON(['status' => 'success', 'data' => $items]);
+    }
+
+    /**
+     * Production Categories List
+     */
+    public function categories()
+    {
+        if ($response = $this->requireAnyPermission(['manage_production'])) {
+            return $response;
+        }
+
+        $data = [
+            'title' => 'Production Categories',
+            'categories' => $this->productionCategoryModel->getAllWithJobCounts(),
+            'activePage' => 'production',
+            'activeSubPage' => 'categories'
+        ];
+
+        return view('production/categories', $data);
+    }
+
+    /**
+     * Store Production Category
+     */
+    public function storeCategory()
+    {
+        if ($response = $this->requireAnyPermission(['manage_production'])) {
+            return $response;
+        }
+
+        if (!$this->request->isAJAX()) {
+            return redirect()->to('/production/categories');
+        }
+
+        $rules = [
+            'category_name' => 'required|min_length[2]|max_length[100]|is_unique[production_categories.category_name]'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $data = [
+            'category_name' => $this->request->getPost('category_name'),
+            'description' => $this->request->getPost('description') ?? ''
+        ];
+
+        $categoryId = $this->productionCategoryModel->insert($data);
+
+        if ($categoryId) {
+            $this->auditLogModel->log(
+                session()->get('user_id') ?? 1,
+                'production_category_create',
+                'ProductionCategory',
+                $categoryId,
+                null,
+                ['category_name' => $data['category_name']]
+            );
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Category created successfully',
+                'category_id' => $categoryId
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to create category'
+            ]);
+        }
+    }
+
+    /**
+     * Update Production Category
+     */
+    public function updateCategory($id)
+    {
+        if ($response = $this->requireAnyPermission(['manage_production'])) {
+            return $response;
+        }
+
+        if (!$this->request->isAJAX()) {
+            return redirect()->to('/production/categories');
+        }
+
+        $category = $this->productionCategoryModel->find($id);
+        if (!$category) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Category not found'
+            ]);
+        }
+
+        $rules = [
+            'category_name' => 'required|min_length[2]|max_length[100]|is_unique[production_categories.category_name,id,' . $id . ']'
+        ];
+
+        if (!$this->validate($rules)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'errors' => $this->validator->getErrors()
+            ]);
+        }
+
+        $data = [
+            'category_name' => $this->request->getPost('category_name'),
+            'description' => $this->request->getPost('description') ?? ''
+        ];
+
+        if ($this->productionCategoryModel->update($id, $data)) {
+            $this->auditLogModel->log(
+                session()->get('user_id') ?? 1,
+                'production_category_update',
+                'ProductionCategory',
+                $id,
+                ['category_name' => $category['category_name']],
+                ['category_name' => $data['category_name']]
+            );
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Category updated successfully'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to update category'
+            ]);
+        }
+    }
+
+    /**
+     * Delete Production Category
+     */
+    public function deleteCategory($id)
+    {
+        if ($response = $this->requireAnyPermission(['manage_production'])) {
+            return $response;
+        }
+
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $category = $this->productionCategoryModel->find($id);
+        if (!$category) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Category not found'
+            ]);
+        }
+
+        // Check if category has jobs
+        $jobCount = $this->productionJobModel->where('production_category_id', $id)->countAllResults();
+        if ($jobCount > 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Cannot delete category with existing jobs. Please reassign or delete the jobs first.'
+            ]);
+        }
+
+        if ($this->productionCategoryModel->delete($id)) {
+            $this->auditLogModel->log(
+                session()->get('user_id') ?? 1,
+                'production_category_delete',
+                'ProductionCategory',
+                $id,
+                ['category_name' => $category['category_name']],
+                null
+            );
+
+            return $this->response->setJSON([
+                'status' => 'success',
+                'message' => 'Category deleted successfully'
+            ]);
+        } else {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Failed to delete category'
+            ]);
+        }
+    }
+
+    /**
+     * Get Job Items via AJAX
+     */
+    public function getJobItems($jobId)
+    {
+        if (!$this->request->isAJAX()) {
+            return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+        }
+
+        $job = $this->productionJobModel->find($jobId);
+        if (!$job) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Job not found'
+            ]);
+        }
+
+        // Get job items with product details
+        $items = $this->productionJobItemModel->select('production_job_items.*, products.product_name, products.product_code, products.unit')
+            ->join('products', 'products.id = production_job_items.item_id', 'left')
+            ->where('production_job_items.production_job_id', $jobId)
+            ->findAll();
+
+        return $this->response->setJSON([
+            'status' => 'success',
+            'items' => $items
+        ]);
     }
 }

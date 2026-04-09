@@ -12,6 +12,7 @@ use App\Models\CategoryModel;
 use App\Models\SystemSettingModel;
 use App\Models\CustomerModel;
 use App\Models\UserModel;
+use App\Models\AdjustmentEventModel;
 
 class Reports extends BaseController
 {
@@ -38,6 +39,7 @@ class Reports extends BaseController
         $this->settingsModel = new SystemSettingModel();
         $this->customerModel = new CustomerModel();
         $this->userModel = new UserModel();
+        $this->adjustmentEventModel = new AdjustmentEventModel();
         
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
@@ -55,6 +57,7 @@ class Reports extends BaseController
         $data = $this->getInventoryReportData($categoryId, $stockStatus);
         $data['title'] = 'Inventory Reports';
         $data['activePage'] = 'reports';
+        $data['activeSubPage'] = 'inventory';
         
         return view('reports/inventory', $data);
     }
@@ -172,7 +175,8 @@ class Reports extends BaseController
             'totalTax' => $totalTax,
             'totalDiscount' => $totalDiscount,
             'products' => $this->productModel->findAll(),
-            'activePage' => 'reports'
+            'activePage' => 'reports',
+            'activeSubPage' => 'sales'
         ];
         
         return view('reports/sales', $data);
@@ -254,7 +258,10 @@ class Reports extends BaseController
             'LRD' => $this->purchaseModel->getTotalByDateRange($startDate, $endDate, 'LRD'),
             'USD' => $this->purchaseModel->getTotalByDateRange($startDate, $endDate, 'USD'),
         ];
-        
+
+        // Adjustments (damage, theft, refunds — stock value losses)
+        $adjustmentSummary = $this->getAdjustmentSummary($startDate, $endDate, $currency);
+
         // Gross Profit
         $grossProfitLRD = $revenueLRD - $cogs['LRD'];
         $grossProfitUSD = $revenueUSD - $cogs['USD'];
@@ -280,11 +287,13 @@ class Reports extends BaseController
             'expense_log' => $expenseLog,
             'financial_trend' => $financialTrend,
             'received_purchases' => $receivedPurchases,
+            'adjustment_summary' => $adjustmentSummary,
             'net_profit' => ['LRD' => $netProfitLRD, 'USD' => $netProfitUSD],
             'categories' => $this->categoryModel->findAll(),
             'expenseCategories' => model(\App\Models\ExpenseCategoryModel::class)->findAll(),
             'users' => $this->userModel->findAll(),
-            'activePage' => 'reports'
+            'activePage' => 'reports',
+            'activeSubPage' => 'financial'
         ];
         
         return view('reports/financial', $data);
@@ -391,7 +400,8 @@ class Reports extends BaseController
             'productionTrend' => $productionTrend,
             'products' => $this->productModel->findAll(),
             'users' => $this->userModel->findAll(),
-            'activePage' => 'reports'
+            'activePage' => 'reports',
+            'activeSubPage' => 'production'
         ];
         
         return view('reports/production', $data);
@@ -1721,5 +1731,37 @@ class Reports extends BaseController
         ];
         
         return view('reports/product_history', $data);
+    }
+
+    /**
+     * Get adjustment event summary for financial reports
+     */
+    private function getAdjustmentSummary($startDate, $endDate, $currency = null)
+    {
+        $builder = $this->db->table('adjustment_events')
+            ->select('event_type, COUNT(*) as event_count, SUM(total_value) as total_value, currency')
+            ->where('adjustment_events.deleted_at', null);
+
+        if ($startDate && $endDate) {
+            $builder->where('adjustment_events.event_date >=', $startDate);
+            $builder->where('adjustment_events.event_date <=', $endDate);
+        }
+
+        if ($currency) {
+            $builder->where('adjustment_events.currency', $currency);
+        }
+
+        $rows = $builder->groupBy(['event_type', 'currency'])->get()->getResultArray();
+
+        $summary = ['LRD' => ['Damage' => 0, 'Refund' => 0, 'Theft' => 0, 'Return' => 0, 'Other' => 0, 'total' => 0],
+                     'USD' => ['Damage' => 0, 'Refund' => 0, 'Theft' => 0, 'Return' => 0, 'Other' => 0, 'total' => 0]];
+
+        foreach ($rows as $row) {
+            $cur = $row['currency'] ?? 'LRD';
+            $summary[$cur][$row['event_type']] = $row['total_value'] ?? 0;
+            $summary[$cur]['total'] += $row['total_value'] ?? 0;
+        }
+
+        return $summary;
     }
 }

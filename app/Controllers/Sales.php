@@ -44,7 +44,8 @@ class Sales extends BaseController
             'title' => 'Sales',
             'sales' => $this->saleModel->orderBy('created_at', 'DESC')->paginate(20),
             'pager' => $this->saleModel->pager,
-            'activePage' => 'sales'
+            'activePage' => 'sales',
+            'activeSubPage' => 'sales'
         ];
 
         return view('sales/index', $data);
@@ -61,7 +62,8 @@ class Sales extends BaseController
             'products' => $this->productModel->where('quantity >', 0)->findAll(),
             'invoice_number' => $this->saleModel->generateInvoiceNumber(),
             'tax_rate' => $this->settingsModel->get('tax_rate', 0),
-            'activePage' => 'sales'
+            'activePage' => 'sales',
+            'activeSubPage' => 'create'
         ];
 
         return view('sales/create', $data);

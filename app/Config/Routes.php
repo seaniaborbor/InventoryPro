@@ -45,6 +45,9 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     // Settings
     $routes->post('settings/set-currency', 'Settings::setCurrency');
 
+    // User Guide
+    $routes->get('guide', 'Guide::index');
+
     // Notifications
     $routes->group('notifications', function ($routes) {
         $routes->get('/', 'Notifications::index');
@@ -162,7 +165,23 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         $routes->post('bom/update/(:num)', 'Production::updateBom/$1', ['filter' => 'permission:manage_bom']);
         $routes->post('bom/delete/(:num)', 'Production::deleteBom/$1', ['filter' => 'permission:delete_records']);
 
+        $routes->get('categories', 'Production::categories', ['filter' => 'permission:manage_production']);
+        $routes->post('store-category', 'Production::storeCategory', ['filter' => 'permission:manage_production']);
+        $routes->post('update-category/(:num)', 'Production::updateCategory/$1', ['filter' => 'permission:manage_production']);
+        $routes->post('delete-category/(:num)', 'Production::deleteCategory/$1', ['filter' => 'permission:manage_production']);
+
         $routes->get('get-materials/(:num)', 'Production::getMaterials/$1');
+    });
+
+    // ==================== ADJUSTMENTS MODULE ====================
+    $routes->group('adjustments', function ($routes) {
+        $routes->get('/', 'Adjustments::index');
+        $routes->get('create', 'Adjustments::create');
+        $routes->post('store', 'Adjustments::store');
+        $routes->get('view/(:num)', 'Adjustments::view/$1');
+        $routes->get('edit/(:num)', 'Adjustments::edit/$1');
+        $routes->post('update/(:num)', 'Adjustments::update/$1');
+        $routes->post('delete/(:num)', 'Adjustments::delete/$1');
     });
 
     // ==================== REPORTS MODULE ====================

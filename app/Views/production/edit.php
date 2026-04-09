@@ -16,14 +16,26 @@
                     <?= csrf_field() ?>
 
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label class="form-label">Job Reference</label>
                             <input type="text" class="form-control" value="<?= esc($job['job_reference']) ?>" readonly>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-4">
                             <label for="job_name" class="form-label">Job Name *</label>
                             <input type="text" class="form-control" id="job_name" name="job_name"
                                    value="<?= esc($job['job_name']) ?>" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="customer_id" class="form-label">Customer</label>
+                            <select class="form-select" id="customer_id" name="customer_id">
+                                <option value="">Select Customer</option>
+                                <?php foreach ($customers as $customer): ?>
+                                    <option value="<?= $customer['id'] ?>"
+                                        <?= $job['customer_id'] == $customer['id'] ? 'selected' : '' ?>>
+                                        <?= esc($customer['customer_name']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
                         </div>
                     </div>
 
@@ -34,13 +46,13 @@
                                    value="<?= esc(date('Y-m-d', strtotime($job['production_date']))) ?>" required>
                         </div>
                         <div class="col-md-4">
-                            <label for="finished_product_id" class="form-label">Finished Product</label>
-                            <select class="form-select" id="finished_product_id" name="finished_product_id">
-                                <option value="">None (Consumable materials only)</option>
-                                <?php foreach ($products as $product): ?>
-                                    <option value="<?= $product['id'] ?>"
-                                        <?= $job['finished_product_id'] == $product['id'] ? 'selected' : '' ?>>
-                                        <?= esc($product['product_name']) ?> (SKU: <?= esc($product['sku']) ?>)
+                            <label for="production_category_id" class="form-label">Category</label>
+                            <select class="form-select" id="production_category_id" name="production_category_id">
+                                <option value="">Select Category</option>
+                                <?php foreach ($categories as $category): ?>
+                                    <option value="<?= $category['id'] ?>"
+                                        <?= ($job['production_category_id'] ?? '') == $category['id'] ? 'selected' : '' ?>>
+                                        <?= esc($category['category_name']) ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
@@ -168,8 +180,8 @@ $(document).ready(function() {
 
         const formData = {
             job_name:            $('#job_name').val().trim(),
+            customer_id:         $('#customer_id').val() || null,
             production_date:     $('#production_date').val(),
-            finished_product_id: $('#finished_product_id').val() || null,
             quantity_produced:   parseFloat($('#quantity_produced').val()) || 0,
             currency:            $('#currency').val(),
             notes:               $('#notes').val().trim(),
