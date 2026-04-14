@@ -1,6 +1,3 @@
-Here's your upgraded README - focused more on marketing/sales with minimal installation instructions:
-
-
 # 🏭 INVENTORYPRO - Your Business Command Center
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
