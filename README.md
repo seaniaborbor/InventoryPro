@@ -1,6 +1,6 @@
 Here's your upgraded README - focused more on marketing/sales with minimal installation instructions:
 
-```markdown
+
 # 🏭 INVENTORYPRO - Your Business Command Center
 
 ![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
@@ -25,7 +25,6 @@ Every business owner knows the pain:
 
 **You're not alone. 87% of small businesses struggle with inventory management.**
 
----
 
 ## 💡 The Solution
 
@@ -33,7 +32,7 @@ Every business owner knows the pain:
 
 **One login. One dashboard. Complete visibility.**
 
----
+
 
 ## ✨ What Makes InventoryPro Different?
 
@@ -61,11 +60,11 @@ See your top customers, best-selling products, highest-performing staff, and mos
 ### 🌓 **Dark/Light Mode**
 Work comfortably day or night with theme toggle.
 
----
+
 
 ## 📊 By The Numbers
 
-```
+
 ┌─────────────────────────────────────────────────────────────┐
 │                                                              │
 │   Businesses using InventoryPro report:                     │
@@ -76,9 +75,9 @@ Work comfortably day or night with theme toggle.
 │   ✅ 100% visibility into operations                        │
 │                                                              │
 └─────────────────────────────────────────────────────────────┘
-```
 
----
+
+
 
 ## 🏢 Who Is This For?
 
@@ -90,7 +89,7 @@ Work comfortably day or night with theme toggle.
 | **📦 Wholesale Distribution** | Bulk purchasing, supplier management, stock control |
 | **💻 E-commerce** | Inventory sync, order fulfillment, stock alerts |
 
----
+
 
 ## 🚀 Features That Deliver Results
 
@@ -138,8 +137,6 @@ Work comfortably day or night with theme toggle.
 - Backup & restore
 - System settings
 
----
-
 ## 🎯 Success Stories
 
 > *"InventoryPro transformed how we run our printing business. We now know exactly what materials we have and what every production job costs. Game changer!"*
@@ -154,8 +151,6 @@ Work comfortably day or night with theme toggle.
 
 **— John D., Manufacturing Facility**
 
----
-
 ## 💻 Technical Excellence
 
 Built on **CodeIgniter 4** with modern PHP 8.2+, InventoryPro is:
@@ -165,8 +160,6 @@ Built on **CodeIgniter 4** with modern PHP 8.2+, InventoryPro is:
 - ✅ **Scalable** - Handles thousands of products and transactions
 - ✅ **Maintainable** - Clean MVC architecture
 - ✅ **Cross-Platform** - Works on Apache, Nginx, IIS
-
----
 
 ## 🛠️ Quick Installation
 
@@ -197,7 +190,7 @@ php spark serve
 
 ## 🎁 What You Get
 
-```
+
 ✅ Complete source code
 ✅ Database migrations
 ✅ Sample data seeder
@@ -206,7 +199,7 @@ php spark serve
 ✅ Well-documented
 ✅ Modern UI with dark mode
 ✅ Mobile responsive
-```
+
 
 
 
@@ -214,14 +207,12 @@ php spark serve
 
 **MIT License** - Use it freely, modify it, even sell it. No restrictions.
 
-```
 Copyright (c) 2024 InventoryPro
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files...
-```
 
----
+
 
 ## 🌟 Star Us
 
@@ -239,7 +230,7 @@ It helps other business owners discover this solution.
 👉 **Fork it** 🍴  
 👉 **Share with other business owners** 📤
 
----
+
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -252,7 +243,5 @@ It helps other business owners discover this solution.
 └─────────────────────────────────────────────────────────────┘
 ```
 
----
 
 **InventoryPro - Where Efficiency Meets Profitability** 🚀
-```
