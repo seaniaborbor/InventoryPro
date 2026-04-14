@@ -55,6 +55,10 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         $routes->post('mark-read', 'Notifications::markRead');
     });
 
+    // ==================== LEADERBOARD (Accessible by all logged-in users) ====================
+    $routes->get('leaderboard', 'Leaderboard::index');
+    $routes->get('leaderboard/get-data', 'Leaderboard::getData');
+
     // ==================== INVENTORY MODULE ====================
     $routes->group('inventory', ['filter' => 'permission:access_inventory,view_inventory,manage_products,manage_categories,manage_units,adjust_stock'], function ($routes) {
         $routes->get('products', 'Inventory::products');
@@ -84,20 +88,29 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         $routes->post('units/delete/(:num)', 'Inventory::deleteUnit/$1', ['filter' => 'permission:delete_records']);
     });
 
-    // ==================== SALES MODULE ====================
-    $routes->group('sales', ['filter' => 'permission:access_sales,manage_sales,create_sales'], function ($routes) {
-        $routes->get('/', 'Sales::index');
-        $routes->get('create', 'Sales::create', ['filter' => 'permission:create_sales,manage_sales']);
-        $routes->post('store', 'Sales::store', ['filter' => 'permission:create_sales,manage_sales']);
-        $routes->get('view/(:num)', 'Sales::view/$1');
-        $routes->get('invoice/(:num)', 'Sales::invoice/$1');
-        $routes->post('print/(:num)', 'Sales::print/$1');
-        $routes->post('email/(:num)', 'Sales::email/$1');
-        $routes->post('payment/(:num)', 'Sales::addPayment/$1');
-        $routes->get('get-products', 'Sales::getProducts');
-        $routes->post('calculate-total', 'Sales::calculateTotal');
-    });
-
+// ==================== SALES MODULE ====================
+$routes->group('sales', ['filter' => 'permission:access_sales,manage_sales,create_sales'], function ($routes) {
+    // Listing & Creation
+    $routes->get('/', 'Sales::index');
+    $routes->get('create', 'Sales::create', ['filter' => 'permission:create_sales,manage_sales']);
+    $routes->post('store', 'Sales::store', ['filter' => 'permission:create_sales,manage_sales']);
+    
+    // View & Edit
+    $routes->get('view/(:num)', 'Sales::view/$1');
+    $routes->get('edit/(:num)', 'Sales::edit/$1', ['filter' => 'permission:manage_sales']);
+    $routes->post('update/(:num)', 'Sales::update/$1', ['filter' => 'permission:manage_sales']);
+    $routes->get('get-sale-data/(:num)', 'Sales::getSaleData/$1');
+    
+    // Invoice & Print
+    $routes->get('invoice/(:num)', 'Sales::invoice/$1');
+    $routes->post('print/(:num)', 'Sales::print/$1');
+    $routes->post('email/(:num)', 'Sales::email/$1');
+    
+    // Payments & Helpers
+    $routes->post('payment/(:num)', 'Sales::addPayment/$1');
+    $routes->get('get-products', 'Sales::getProducts');
+    $routes->post('calculate-total', 'Sales::calculateTotal');
+});
     // ==================== CUSTOMERS MODULE ====================
     $routes->group('customers', ['filter' => 'permission:access_customers,view_customers,manage_customers'], function ($routes) {
         $routes->get('/', 'Customers::index');
@@ -150,10 +163,13 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
         $routes->get('jobs', 'Production::jobs');
         $routes->get('create', 'Production::create', ['filter' => 'permission:manage_production']);
         $routes->post('store', 'Production::store', ['filter' => 'permission:manage_production']);
-        
+
+        // In Routes.php - Add to production group
+        $routes->get('print/(:num)', 'Production::print/$1');
+
         $routes->get('view/(:num)', 'Production::view/$1');
-        $routes->get('edit/(:num)', 'Production::edit/$1');       // ← ADD THIS
-        $routes->post('update/(:num)', 'Production::update/$1');  // ← ADD THIS
+        $routes->get('edit/(:num)', 'Production::edit/$1');
+        $routes->post('update/(:num)', 'Production::update/$1');
         $routes->post('complete/(:num)', 'Production::complete/$1');
         $routes->post('delete/(:num)', 'Production::delete/$1');
         $routes->post('cancel/(:num)', 'Production::cancel/$1');
@@ -174,38 +190,55 @@ $routes->group('', ['filter' => 'auth'], function ($routes) {
     });
 
     // ==================== ADJUSTMENTS MODULE ====================
-    $routes->group('adjustments', function ($routes) {
+    $routes->group('adjustments', ['filter' => 'permission:adjust_stock'], function ($routes) {
         $routes->get('/', 'Adjustments::index');
         $routes->get('create', 'Adjustments::create');
+        $routes->get('create-from-sale/(:num)', 'Adjustments::createFromSale/$1');
+        $routes->get('create-from-job/(:num)', 'Adjustments::createFromJob/$1');
         $routes->post('store', 'Adjustments::store');
         $routes->get('view/(:num)', 'Adjustments::view/$1');
         $routes->get('edit/(:num)', 'Adjustments::edit/$1');
         $routes->post('update/(:num)', 'Adjustments::update/$1');
         $routes->post('delete/(:num)', 'Adjustments::delete/$1');
+        $routes->get('api/get-by-sale/(:num)', 'Adjustments::apiGetBySale/$1');
+        $routes->get('api/get-by-job/(:num)', 'Adjustments::apiGetByJob/$1');
     });
 
     // ==================== REPORTS MODULE ====================
     $routes->group('reports', ['filter' => 'permission:view_reports'], function ($routes) {
+        // Inventory Reports
         $routes->get('inventory', 'Reports::inventory');
         $routes->get('generate-inventory', 'Reports::generateInventory');
         $routes->get('inventory/export', 'Reports::exportInventory');
 
+        // Sales Reports
         $routes->get('sales', 'Reports::sales');
         $routes->get('sales/export', 'Reports::exportSales');
         $routes->get('customerHistory/(:num)', 'Reports::customerHistory/$1');
         $routes->get('sellerHistory/(:num)', 'Reports::sellerHistory/$1');
         $routes->get('productHistory/(:num)', 'Reports::productHistory/$1');
 
+        // Financial Reports
         $routes->get('financial', 'Reports::financial');
         $routes->get('financial/export', 'Reports::exportFinancial');
 
+        // Production Reports
         $routes->get('production', 'Reports::production');
         $routes->get('production/export', 'Reports::exportProduction');
 
+        // Stock Movement Report
         $routes->get('stock-movement', 'Reports::stockMovement');
-        $routes->get('profit-loss', 'Reports::profitLoss');
 
+        // Adjustments Report
+        $routes->get('adjustments', 'Reports::adjustments');
+        $routes->get('adjustments/export', 'Reports::exportAdjustments');
+
+        // Profit & Loss - Fixed to point to financial
+        $routes->get('profit-loss', 'Reports::financial');
+
+        // Export Route
         $routes->post('export', 'Reports::export');
+        $routes->get('summary', 'Reports::summary');
     });
 
     // ==================== ADMIN MODULE (Admin Only) ====================
@@ -260,6 +293,9 @@ $routes->group('api', ['filter' => 'auth'], function ($routes) {
     $routes->get('dashboard/stats', 'Api\Dashboard::stats');
     $routes->get('dashboard/charts', 'Api\Dashboard::charts');
 });
+
+// ==================== LEADERBOARD API ROUTES ====================
+// (Already added above in protected routes)
 
 // ==================== ERROR HANDLING ====================
 $routes->set404Override(function () {

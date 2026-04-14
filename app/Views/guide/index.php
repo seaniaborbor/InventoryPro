@@ -34,9 +34,51 @@
     .guide-icon {
         font-size: 2rem;
     }
+    .step-box {
+        background: #f8f9fa;
+        border-left: 4px solid #0d6efd;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+    }
+    .step-number {
+        display: inline-block;
+        width: 28px;
+        height: 28px;
+        background: #0d6efd;
+        color: white;
+        text-align: center;
+        border-radius: 50%;
+        line-height: 28px;
+        font-size: 14px;
+        font-weight: bold;
+        margin-right: 10px;
+    }
+    .tip-box {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin: 15px 0;
+    }
+    .warning-box {
+        background: #f8d7da;
+        border: 1px solid #f5c6cb;
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin: 15px 0;
+    }
+    .success-box {
+        background: #d4edda;
+        border: 1px solid #c3e6cb;
+        border-radius: 8px;
+        padding: 12px 15px;
+        margin: 15px 0;
+    }
     .module-card {
         border-left: 4px solid;
         transition: transform 0.2s, box-shadow 0.2s;
+        margin-bottom: 20px;
     }
     .module-card:hover {
         transform: translateY(-3px);
@@ -46,348 +88,768 @@
         font-size: 1.5rem;
         color: #6c757d;
     }
+    kbd {
+        background-color: #f8f9fa;
+        border: 1px solid #ccc;
+        border-radius: 3px;
+        padding: 2px 5px;
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
 </style>
 
 <div class="row">
     <!-- Navigation sidebar -->
     <div class="col-lg-3 d-none d-lg-block">
         <nav class="guide-sidebar">
-            <strong class="d-block px-3 py-2 text-muted small">CONTENTS</strong>
+            <strong class="d-block px-3 py-2 text-muted small">📖 TABLE OF CONTENTS</strong>
             <a href="#overview">Overview</a>
-            <a href="#how-it-works">How It All Works Together</a>
-            <a href="#getting-started">Getting Started</a>
-            <a href="#module-inventory">Inventory</a>
-            <a href="#module-inventory-products" class="sub">Products</a>
-            <a href="#module-inventory-categories" class="sub">Categories</a>
-            <a href="#module-inventory-adjustments" class="sub">Stock Adjustments</a>
-            <a href="#module-purchases">Purchases</a>
-            <a href="#module-suppliers">Suppliers</a>
-            <a href="#module-sales">Sales</a>
-            <a href="#module-customers">Customers</a>
-            <a href="#module-production">Production</a>
-            <a href="#module-production-jobs" class="sub">Jobs</a>
-            <a href="#module-production-categories" class="sub">Categories</a>
-            <a href="#module-production-bom" class="sub">Bill of Materials</a>
-            <a href="#module-expenses">Expenses</a>
-            <a href="#module-adjustments">Adjustments</a>
-            <a href="#module-reports">Reports</a>
-            <a href="#module-administration">Administration</a>
-            <a href="#module-profile">Profile &amp; Settings</a>
+            <a href="#how-it-works">How Everything Connects</a>
+            <a href="#getting-started">Getting Started (First Time)</a>
+            <a href="#module-inventory">📦 Inventory Management</a>
+            <a href="#module-inventory-products" class="sub">• Creating Products</a>
+            <a href="#module-inventory-categories" class="sub">• Managing Categories</a>
+            <a href="#module-inventory-adjustments" class="sub">• Stock Adjustments</a>
+            <a href="#module-purchases">🛒 Purchases</a>
+            <a href="#module-suppliers">🚚 Suppliers</a>
+            <a href="#module-sales">💰 Sales</a>
+            <a href="#module-customers">👥 Customers</a>
+            <a href="#module-production">⚙️ Production</a>
+            <a href="#module-production-jobs" class="sub">• Creating Jobs</a>
+            <a href="#module-production-categories" class="sub">• Production Categories</a>
+            <a href="#module-production-bom" class="sub">• Bill of Materials (BOM)</a>
+            <a href="#module-expenses">💸 Expenses</a>
+            <a href="#module-adjustments">📊 Adjustments (Damage/Returns)</a>
+            <a href="#module-reports">📈 Reports</a>
+            <a href="#module-administration">⚙️ Administration</a>
+            <a href="#module-profile">👤 Profile &amp; Security</a>
+            <a href="#faq">❓ FAQ</a>
+            <a href="#keyboard-shortcuts">⌨️ Keyboard Shortcuts</a>
         </nav>
     </div>
 
     <!-- Main content -->
     <div class="col-lg-9">
-        <h2 class="mb-4"><i class="bi bi-journal-bookmark me-2"></i>User Guide</h2>
+        <h1 class="mb-3"><i class="bi bi-journal-bookmark-fill me-2 text-primary"></i>Complete User Guide</h1>
+        <p class="lead text-muted mb-4">Learn how to manage your entire inventory, sales, purchases, production, and finances — all in one place.</p>
 
-        <!-- Overview -->
+        <!-- ========== OVERVIEW ========== -->
         <div id="overview" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle me-2"></i>Overview</h4>
-            <p class="text-muted">This system helps you manage your entire business from one place — products, purchases, sales, production, expenses, and reports.</p>
-
-            <div class="row g-3">
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-info-circle-fill me-2 text-info"></i>What Is This System?</h2>
+            <p>This is a complete <strong>Inventory Management System</strong> designed for businesses that sell products, manage stock, track production, and monitor finances. It helps you:</p>
+            
+            <div class="row g-3 mt-2">
                 <div class="col-md-4">
                     <div class="card text-center p-3 h-100">
                         <i class="bi bi-box-seam guide-icon text-primary mx-auto"></i>
-                        <p class="mb-0">Track every product and stock level</p>
+                        <h6>Track Inventory</h6>
+                        <p class="small mb-0">Know exactly what you have, where it is, and when to reorder</p>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card text-center p-3 h-100">
                         <i class="bi bi-arrow-left-right guide-icon text-success mx-auto"></i>
-                        <p class="mb-0">Manage purchases, production, and sales in one workflow</p>
+                        <h6>Manage Workflow</h6>
+                        <p class="small mb-0">From purchase to production to sale — everything connected</p>
                     </div>
                 </div>
                 <div class="col-md-4">
                     <div class="card text-center p-3 h-100">
                         <i class="bi bi-graph-up-arrow guide-icon text-warning mx-auto"></i>
-                        <p class="mb-0">Generate reports to make smarter decisions</p>
+                        <h6>Analyze Performance</h6>
+                        <p class="small mb-0">Generate reports to see profits, losses, and trends</p>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- How It All Works Together -->
+        <!-- ========== HOW IT WORKS ========== -->
         <div id="how-it-works" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-diagram-3 me-2"></i>How It All Works Together</h4>
-            <p class="text-muted">All modules connect through <strong>Inventory</strong> — every purchase, production, and sale changes your stock levels.</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-diagram-3-fill me-2 text-primary"></i>How Everything Connects</h2>
+            <p>All modules work together through your <strong>inventory</strong>. Here's the flow:</p>
 
-            <div class="card bg-light p-4">
+            <div class="card bg-light p-4 mt-3">
                 <div class="text-center d-flex flex-wrap justify-content-center align-items-center gap-2">
-                    <span class="badge bg-info p-3 fs-6"><i class="bi bi-truck d-block mb-1"></i> Purchases
-                        <small class="d-block">(stock comes in)</small>
-                    </span>
-                    <span class="flow-arrow">&rarr;</span>
-                    <span class="badge bg-primary p-3 fs-6"><i class="bi bi-box-seam d-block mb-1"></i> Inventory
-                        <small class="d-block">(your stock)</small>
-                    </span>
-                    <span class="flow-arrow">&rarr;</span>
-                    <span class="badge bg-warning text-dark p-3 fs-6"><i class="bi bi-gear d-block mb-1"></i> Production
-                        <small class="d-block">(materials transform)</small>
-                    </span>
-                    <span class="flow-arrow">&rarr;</span>
-                    <span class="badge bg-success p-3 fs-6"><i class="bi bi-cart-check d-block mb-1"></i> Sales
-                        <small class="d-block">(stock goes out)</small>
-                    </span>
+                    <div class="text-center">
+                        <span class="badge bg-success p-3 fs-6"><i class="bi bi-truck d-block mb-1"></i> <strong>1. PURCHASE</strong>
+                            <small class="d-block">Stock comes IN</small>
+                        </span>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="text-center">
+                        <span class="badge bg-primary p-3 fs-6"><i class="bi bi-box-seam d-block mb-1"></i> <strong>2. INVENTORY</strong>
+                            <small class="d-block">Stock INCREASES</small>
+                        </span>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="text-center">
+                        <span class="badge bg-warning text-dark p-3 fs-6"><i class="bi bi-gear d-block mb-1"></i> <strong>3. PRODUCTION</strong>
+                            <small class="d-block">Materials CONSUMED</small>
+                        </span>
+                    </div>
+                    <span class="flow-arrow">→</span>
+                    <div class="text-center">
+                        <span class="badge bg-danger p-3 fs-6"><i class="bi bi-cart-check d-block mb-1"></i> <strong>4. SALE</strong>
+                            <small class="d-block">Stock DECREASES</small>
+                        </span>
+                    </div>
                 </div>
                 <div class="mt-3 text-center">
-                    <small class="text-muted"><i class="bi bi-lightbulb me-1"></i> <strong>Expenses</strong> track your spending. <strong>Reports</strong> show you everything in one place.</small>
+                    <small class="text-muted"><i class="bi bi-lightbulb me-1"></i> <strong>Pro Tip:</strong> Expenses and Adjustments affect your financial reports — they don't change stock levels directly.</small>
                 </div>
             </div>
         </div>
 
-        <!-- Getting Started -->
+        <!-- ========== GETTING STARTED ========== -->
         <div id="getting-started" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-rocket-takeoff me-2"></i>Getting Started</h4>
-            <p>Follow these steps in order to set up the system for first use:</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-rocket-takeoff-fill me-2 text-success"></i>Getting Started (First Time Setup)</h2>
+            <p>Follow these steps in order to set up your system correctly:</p>
 
-            <ol>
-                <li><strong>Add Products</strong> — Go to <em>Inventory > Products</em> and create your products (raw materials and finished goods).</li>
-                <li><strong>Add Customers &amp; Suppliers</strong> — Create records for the people and businesses you work with.</li>
-                <li><strong>Record Purchases</strong> — When you buy stock, create a purchase. This adds quantities to inventory automatically.</li>
-                <li><strong>Record Sales</strong> — When you sell to a customer, create a sale. Stock is deducted from inventory.</li>
-                <li><strong>Record Production</strong> — If you manufacture goods, create a production job to track material usage.</li>
-            </ol>
+            <div class="step-box">
+                <span class="step-number">1</span> <strong>Add Your Products</strong><br>
+                Go to <kbd>Inventory → Products</kbd> and click <span class="badge bg-primary">+ Add Product</span>. Create all the items you buy, sell, or use in production.
+            </div>
 
-            <div class="alert alert-info">
-                <i class="bi bi-info-circle me-1"></i> <strong>Tip:</strong> Start with at least a few products and one supplier before your first purchase.
+            <div class="step-box">
+                <span class="step-number">2</span> <strong>Add Categories (Optional but Recommended)</strong><br>
+                Go to <kbd>Inventory → Categories</kbd> to group similar products. This helps with organization and reporting.
+            </div>
+
+            <div class="step-box">
+                <span class="step-number">3</span> <strong>Add Suppliers</strong><br>
+                Go to <kbd>Purchases → Suppliers</kbd> and add the companies/people you buy from.
+            </div>
+
+            <div class="step-box">
+                <span class="step-number">4</span> <strong>Add Customers</strong><br>
+                Go to <kbd>Sales → Customers</kbd> and add the people/businesses you sell to.
+            </div>
+
+            <div class="step-box">
+                <span class="step-number">5</span> <strong>Record Your First Purchase</strong><br>
+                Go to <kbd>Purchases → New Purchase</kbd>. This adds stock to your inventory.
+            </div>
+
+            <div class="step-box">
+                <span class="step-number">6</span> <strong>Record Your First Sale</strong><br>
+                Go to <kbd>Sales → New Sale</kbd>. This removes stock from your inventory.
+            </div>
+
+            <div class="tip-box">
+                <i class="bi bi-lightbulb-fill me-2 text-warning"></i> <strong>Tip:</strong> Start with a few test transactions before going live. This helps you understand the workflow without affecting real data.
             </div>
         </div>
 
-        <!-- ========== INVENTORY ========== -->
+        <!-- ========== INVENTORY MODULE ========== -->
         <div id="module-inventory" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-box-seam me-2 text-primary"></i>Inventory Module</h4>
-            <p>The Inventory module is the heart of the system. It holds every product you own, tracks stock levels, and updates automatically whenever you purchase, produce, or sell.</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-box-seam-fill me-2 text-primary"></i>📦 Inventory Management</h2>
+            <p>The Inventory module is your central hub. Every product you own lives here, and stock levels update automatically whenever you purchase, produce, or sell.</p>
 
+            <!-- Products -->
             <div id="module-inventory-products" class="mb-4">
-                <h6 class="text-primary"><i class="bi bi-grid me-1"></i> Products</h6>
-                <p><strong>What:</strong> A product is anything you buy, sell, or use in production — raw materials, finished goods, or supplies.</p>
-                <p><strong>How:</strong></p>
-                <ul>
-                    <li>Go to <em>Inventory > Products</em> and click <strong>New Product</strong>.</li>
-                    <li>Fill in the name, SKU, cost price, and selling price. You can also set a <strong>reorder level</strong> — when stock drops below this, a low-stock alert appears.</li>
-                    <li>Each product has a barcode that can be scanned for quick lookups.</li>
-                </ul>
-                <div class="alert alert-success">
-                    <i class="bi bi-check-circle me-1"></i> <strong>Why important:</strong> Without products, you can't make purchases, sales, or production jobs.
+                <h4 class="mt-3"><i class="bi bi-grid-fill me-2 text-primary"></i>Creating Products</h4>
+                <p><strong>What is a product?</strong> Anything you buy, sell, or use — raw materials, finished goods, packaging, or supplies.</p>
+                
+                <h6>Step-by-Step:</h6>
+                <ol>
+                    <li>Go to <kbd>Inventory → Products</kbd></li>
+                    <li>Click the <span class="badge bg-primary">+ Add Product</span> button</li>
+                    <li>Fill in the form:
+                        <ul>
+                            <li><strong>Product Name</strong> — What is it called? (e.g., "Premium Vinyl Sheet")</li>
+                            <li><strong>SKU</strong> — A unique code you create (e.g., "VNL-001")</li>
+                            <li><strong>Barcode</strong> — Optional. Scan this later for quick lookup</li>
+                            <li><strong>Category</strong> — Group similar items together</li>
+                            <li><strong>Unit</strong> — How is it measured? (Pieces, Meters, KG, etc.)</li>
+                            <li><strong>Purchase Price</strong> — What you pay to buy it</li>
+                            <li><strong>Selling Price</strong> — What you charge customers</li>
+                            <li><strong>Initial Quantity</strong> — How many you have right now</li>
+                            <li><strong>Minimum Stock</strong> — When stock falls below this, you'll get a low-stock alert</li>
+                            <li><strong>Description</strong> — Optional notes about the product</li>
+                        </ul>
+                    </li>
+                    <li>Click <span class="badge bg-success">Save Product</span></li>
+                </ol>
+
+                <div class="tip-box">
+                    <i class="bi bi-qr-code me-2"></i> <strong>Pro Tip:</strong> Use the <strong>Scan Barcode</strong> feature in the products list to quickly find products by scanning.
                 </div>
             </div>
 
+            <!-- Categories -->
             <div id="module-inventory-categories" class="mb-4">
-                <h6 class="text-primary"><i class="bi bi-tags me-1"></i> Categories</h6>
-                <p><strong>What:</strong> Categories group similar products together for easier organization and filtering.</p>
-                <p><strong>How:</strong> Go to <em>Inventory > Categories</em>, give it a name and optional description, and save.</p>
+                <h4 class="mt-3"><i class="bi bi-tags-fill me-2 text-primary"></i>Managing Categories</h4>
+                <p><strong>Why use categories?</strong> They help you organize products and filter reports.</p>
+                
+                <h6>Step-by-Step:</h6>
+                <ol>
+                    <li>Go to <kbd>Inventory → Categories</kbd></li>
+                    <li>Click <span class="badge bg-primary">+ Add Category</span></li>
+                    <li>Enter a <strong>Category Name</strong> (e.g., "Raw Materials", "Finished Goods")</li>
+                    <li>Add an optional <strong>Description</strong></li>
+                    <li>Click <span class="badge bg-success">Save</span></li>
+                </ol>
             </div>
 
+            <!-- Stock Adjustments -->
             <div id="module-inventory-adjustments" class="mb-4">
-                <h6 class="text-primary"><i class="bi bi-arrow-left-right me-1"></i> Stock Adjustments</h6>
-                <p><strong>What:</strong> An adjustment lets you manually increase or decrease stock for any reason — stock counts, damaged items, found items, etc.</p>
-                <p><strong>How:</strong> Select the product, choose "Add" or "Subtract", enter the quantity, and give a reason.</p>
-                <p><strong>Why:</strong> Purchases and sales update stock automatically, but adjustments cover situations the system can't detect on its own.</p>
+                <h4 class="mt-3"><i class="bi bi-arrow-left-right-fill me-2 text-primary"></i>Stock Adjustments</h4>
+                <p><strong>When to use?</strong> When you need to manually change stock levels — for physical counts, found items, or corrections.</p>
+                
+                <h6>Step-by-Step:</h6>
+                <ol>
+                    <li>Go to <kbd>Inventory → Stock Adjustments</kbd></li>
+                    <li>Click the <span class="badge bg-primary">Adjust Stock</span> button</li>
+                    <li>Select the <strong>Product</strong></li>
+                    <li>Choose <strong>Increase (+)</strong> or <strong>Decrease (-)</strong></li>
+                    <li>Enter the <strong>Quantity</strong></li>
+                    <li>Select a <strong>Reason</strong> (Stock Count, Damaged, Return, etc.)</li>
+                    <li>Add optional <strong>Notes</strong></li>
+                    <li>Click <span class="badge bg-success">Apply Adjustment</span></li>
+                </ol>
+
+                <div class="warning-box">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Warning:</strong> Decreasing stock below zero is allowed but will show negative inventory. Only do this if you know what you're doing.
+                </div>
             </div>
         </div>
 
         <!-- ========== PURCHASES ========== -->
         <div id="module-purchases" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-cart-plus me-2 text-success"></i>Purchases Module</h4>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-cart-plus-fill me-2 text-success"></i>🛒 Purchases</h2>
+            
+            <div class="success-box">
+                <i class="bi bi-check-circle-fill me-2"></i> <strong>What happens when you create a purchase?</strong> Stock INCREASES automatically.
+            </div>
 
-            <div class="card mb-3 border-success">
-                <div class="card-body">
-                    <p><strong>What:</strong> A purchase records a buy from a supplier. When you save it, the system <strong>automatically adds the purchased quantity to inventory</strong>.</p>
-                    <p><strong>Why:</strong> This is how stock enters your system. Every purchase updates inventory and creates a financial record of the cost.</p>
-                    <p><strong>How:</strong></p>
-                    <ol>
-                        <li>Go to <em>Purchases > New Purchase</em>.</li>
-                        <li>Select a <strong>Supplier</strong> and a <strong>Product</strong>.</li>
-                        <li>Enter the <strong>quantity</strong>, <strong>unit cost</strong>, and <strong>purchase date</strong>.</li>
-                        <li>Save — inventory increases automatically.</li>
-                    </ol>
-                </div>
+            <h6>Step-by-Step to Create a Purchase:</h6>
+            <ol>
+                <li>Go to <kbd>Purchases → New Purchase</kbd></li>
+                <li>Select a <strong>Supplier</strong> (if none exists, create one first)</li>
+                <li>Add <strong>Products</strong> to the purchase:
+                    <ul>
+                        <li>Search for a product by name or SKU</li>
+                        <li>Enter <strong>Quantity</strong> and <strong>Unit Price</strong></li>
+                        <li>Click <span class="badge bg-primary">Add Item</span></li>
+                        <li>Repeat for multiple products</li>
+                    </ul>
+                </li>
+                <li>Set the <strong>Purchase Date</strong></li>
+                <li>Choose <strong>Currency</strong> (LRD or USD)</li>
+                <li>Add optional <strong>Notes</strong></li>
+                <li>Click <span class="badge bg-success">Save Purchase</span></li>
+            </ol>
+
+            <div class="tip-box mt-3">
+                <i class="bi bi-lightbulb-fill me-2"></i> <strong>Tip:</strong> After saving, you can "Receive" the purchase to add stock to inventory. The system can also auto-receive if you prefer.
             </div>
         </div>
 
         <!-- ========== SUPPLIERS ========== -->
         <div id="module-suppliers" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-truck me-2 text-dark"></i>Suppliers</h4>
-            <p><strong>What:</strong> Suppliers are the businesses or people you buy from.</p>
-            <p><strong>How:</strong> Go to <em>Purchases > Suppliers</em>, add their name, phone, email, and address.</p>
-            <p><strong>Why:</strong> You need a supplier to create a purchase. Keeping supplier records helps you track who you've bought from and at what prices.</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-truck-fill me-2 text-secondary"></i>🚚 Suppliers</h2>
+            <p><strong>Who are suppliers?</strong> The businesses or people you buy products from.</p>
+
+            <h6>Step-by-Step to Add a Supplier:</h6>
+            <ol>
+                <li>Go to <kbd>Purchases → Suppliers</kbd></li>
+                <li>Click <span class="badge bg-primary">+ Add Supplier</span></li>
+                <li>Fill in:
+                    <ul>
+                        <li><strong>Supplier Name</strong> — Required</li>
+                        <li><strong>Contact Person</strong> — Who you talk to</li>
+                        <li><strong>Phone</strong> — Required</li>
+                        <li><strong>Email</strong> — Optional</li>
+                        <li><strong>Address</strong> — Optional</li>
+                        <li><strong>Tax Number</strong> — Optional</li>
+                        <li><strong>Payment Terms</strong> — e.g., "Net 30"</li>
+                    </ul>
+                </li>
+                <li>Click <span class="badge bg-success">Save</span></li>
+            </ol>
         </div>
 
         <!-- ========== SALES ========== -->
         <div id="module-sales" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-cart-check me-2 text-success"></i>Sales Module</h4>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-cart-check-fill me-2 text-danger"></i>💰 Sales</h2>
+            
+            <div class="success-box">
+                <i class="bi bi-check-circle-fill me-2"></i> <strong>What happens when you create a sale?</strong> Stock DECREASES automatically.
+            </div>
 
-            <div class="card mb-3 border-success">
-                <div class="card-body">
-                    <p><strong>What:</strong> A sale records a sell to a customer. When you save it, the system <strong>automatically deducts the sold quantity from inventory</strong>.</p>
-                    <p><strong>How:</strong></p>
-                    <ol>
-                        <li>Go to <em>Sales > New Sale</em>.</li>
-                        <li>Select a <strong>Customer</strong> and the <strong>Product</strong> being sold.</li>
-                        <li>Enter <strong>quantity</strong>, <strong>selling price</strong>, and <strong>payment details</strong> (paid, partial, or credit).</li>
-                        <li>Save — inventory decreases automatically.</li>
-                    </ol>
-                </div>
+            <h6>Step-by-Step to Create a Sale:</h6>
+            <ol>
+                <li>Go to <kbd>Sales → New Sale</kbd></li>
+                <li>Select a <strong>Customer</strong> (or leave as "Walk-in Customer")</li>
+                <li>Add <strong>Products</strong> to the sale:
+                    <ul>
+                        <li>Search for a product by name, SKU, or barcode</li>
+                        <li>Enter <strong>Quantity</strong> (system checks stock availability)</li>
+                        <li>Enter <strong>Selling Price</strong> (can override default)</li>
+                        <li>Click <span class="badge bg-primary">Add Item</span></li>
+                    </ul>
+                </li>
+                <li>Set <strong>Sale Date</strong> (defaults to today)</li>
+                <li>Choose <strong>Payment Method</strong> (Cash, Card, Transfer, etc.)</li>
+                <li>Select <strong>Payment Status</strong>:
+                    <ul>
+                        <li><strong>Paid</strong> — Customer paid in full</li>
+                        <li><strong>Partial</strong> — Customer paid partially, enter amount paid</li>
+                        <li><strong>Unpaid</strong> — Customer hasn't paid yet (credit sale)</li>
+                    </ul>
+                </li>
+                <li>Add optional <strong>Notes</strong></li>
+                <li>Click <span class="badge bg-success">Complete Sale</span></li>
+            </ol>
+
+            <div class="tip-box mt-3">
+                <i class="bi bi-printer-fill me-2"></i> <strong>Tip:</strong> After saving, you can print an invoice or email it to the customer.
             </div>
         </div>
 
         <!-- ========== CUSTOMERS ========== -->
         <div id="module-customers" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-people me-2 text-info"></i>Customers</h4>
-            <p><strong>What:</strong> Customers are the people or businesses you sell to.</p>
-            <p><strong>How:</strong> Go to <em>Sales > Customers</em>, add their name, phone, and other details. You can also set a <strong>credit limit</strong>.</p>
-            <p><strong>Why:</strong> You need a customer to create a sale. Customer records help you track sales history, balances, and credit usage.</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-people-fill me-2 text-info"></i>👥 Customers</h2>
+
+            <h6>Step-by-Step to Add a Customer:</h6>
+            <ol>
+                <li>Go to <kbd>Sales → Customers</kbd></li>
+                <li>Click <span class="badge bg-primary">+ Add Customer</span></li>
+                <li>Fill in:
+                    <ul>
+                        <li><strong>Customer Name</strong> — Required</li>
+                        <li><strong>Business Name</strong> — If a company</li>
+                        <li><strong>Phone</strong> — Required</li>
+                        <li><strong>Email</strong> — Optional</li>
+                        <li><strong>Address</strong> — Optional</li>
+                        <li><strong>Credit Limit</strong> — Maximum amount they can owe (optional)</li>
+                    </ul>
+                </li>
+                <li>Click <span class="badge bg-success">Save</span></li>
+            </ol>
+
+            <div class="tip-box">
+                <i class="bi bi-graph-up me-2"></i> <strong>Pro Tip:</strong> Click on a customer's name to see their purchase history and outstanding balance.
+            </div>
         </div>
 
         <!-- ========== PRODUCTION ========== -->
         <div id="module-production" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-gear me-2 text-warning"></i>Production Module</h4>
-            <p>This module tracks when you <strong>transform raw materials into finished goods</strong>.</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-gear-fill me-2 text-warning"></i>⚙️ Production Module</h2>
+            <p>Use Production when you <strong>transform raw materials into finished products</strong>. For example: turning vinyl sheets and ink into printed banners.</p>
 
+            <!-- Production Jobs -->
             <div id="module-production-jobs" class="mb-4">
-                <h6 class="text-warning"><i class="bi bi-list-ol me-1"></i> Production Jobs</h6>
-                <p><strong>What:</strong> A job records material consumption for a task. Materials are deducted from inventory when you mark it as <strong>Completed</strong>.</p>
-                <p><strong>How:</strong></p>
-                <ol class="mb-2">
-                    <li>Go to <em>Production > New Job</em>.</li>
-                    <li>Fill in the <strong>Job Name</strong>, pick a <strong>Customer</strong>, set the <strong>date</strong> and <strong>category</strong>.</li>
-                    <li>Add <strong>Materials</strong> — select products and quantities you'll be consuming.</li>
-                    <li>Set <strong>Status</strong>:
+                <h4 class="mt-3"><i class="bi bi-list-ol-fill me-2 text-warning"></i>Creating Production Jobs</h4>
+                
+                <h6>Step-by-Step:</h6>
+                <ol>
+                    <li>Go to <kbd>Production → New Job</kbd></li>
+                    <li>Fill in basic info:
                         <ul>
-                            <li><strong>Draft</strong> — saves the job, inventory is <em>not yet affected</em>.</li>
-                            <li><strong>Completed</strong> — saves the job and <em>immediately deducts</em> all materials from inventory.</li>
+                            <li><strong>Job Name</strong> — What is this job for? (e.g., "50 Custom Banners")</li>
+                            <li><strong>Customer</strong> — Who requested this job? (optional)</li>
+                            <li><strong>Production Date</strong> — When the job is done</li>
+                            <li><strong>Category</strong> — Group similar jobs</li>
+                            <li><strong>Quantity Produced</strong> — How many finished units?</li>
+                            <li><strong>Currency</strong> — LRD or USD</li>
                         </ul>
                     </li>
+                    <li>Add <strong>Materials</strong>:
+                        <ul>
+                            <li>Select a product (raw material)</li>
+                            <li>Enter quantity needed</li>
+                            <li>Unit cost auto-fills from product purchase price</li>
+                            <li>Click <span class="badge bg-primary">Add Material</span></li>
+                        </ul>
+                    </li>
+                    <li>Choose <strong>Status</strong>:
+                        <ul>
+                            <li><strong>Draft</strong> — Save without affecting inventory. You can edit later.</li>
+                            <li><strong>Completed</strong> — Save AND immediately deduct materials from inventory.</li>
+                        </ul>
+                    </li>
+                    <li>Click <span class="badge bg-success">Save Production Job</span></li>
                 </ol>
-                <div class="alert alert-warning">
-                    <i class="bi bi-exclamation-triangle me-1"></i> <strong>Important:</strong> When you select <strong>Completed</strong>, the system checks stock levels. If any material has insufficient stock, the job cannot be created.
+
+                <div class="warning-box">
+                    <i class="bi bi-exclamation-triangle-fill me-2"></i> <strong>Important:</strong> If you choose "Completed" status, the system checks stock levels. If any material has insufficient stock, the job cannot be saved.
                 </div>
-                <p><strong>Job Statuses:</strong></p>
-                <ul>
-                    <li><code>Draft</code> — planned but not yet executed. Can be edited, completed, or deleted.</li>
-                    <li><code>Completed</code> — materials deducted. Cannot be edited.</li>
-                    <li><code>Cancelled</code> — abandoned. Does not affect inventory.</li>
-                </ul>
+
+                <div class="tip-box mt-2">
+                    <i class="bi bi-printer-fill me-2"></i> <strong>Tip:</strong> After saving, you can print a production worksheet to give to your team.
+                </div>
             </div>
 
+            <!-- Production Categories -->
             <div id="module-production-categories" class="mb-4">
-                <h6 class="text-warning"><i class="bi bi-tags me-1"></i> Production Categories</h6>
-                <p><strong>What:</strong> Group jobs by type — e.g. "Printing", "Assembly", "Packaging". Categories help in reporting and filtering.</p>
-                <p><strong>How:</strong> Go to <em>Production > Categories</em>, add a name, and save.</p>
-            </div>
-
-            <div id="module-production-bom" class="mb-4">
-                <h6 class="text-warning"><i class="bi bi-file-text me-1"></i> Bill of Materials (BOM)</h6>
-                <p><strong>What:</strong> A BOM is a reusable template — it defines a standard "recipe" of materials for repeated production jobs.</p>
-                <p><strong>Why:</strong> Instead of re-entering the same materials every time, create a BOM template once and load it when creating jobs.</p>
-                <p><strong>How:</strong></p>
+                <h4 class="mt-3"><i class="bi bi-tags-fill me-2 text-warning"></i>Production Categories</h4>
+                <p><strong>Why?</strong> Group similar jobs together (e.g., "Banners", "T-Shirts", "Labels").</p>
+                
+                <h6>Step-by-Step:</h6>
                 <ol>
-                    <li>Go to <em>Production > Bill of Materials</em> and click <strong>New Template</strong>.</li>
-                    <li>Give it a name, add the materials and their standard quantities.</li>
-                    <li>When creating a production job, select the template and click <strong>Load</strong>.</li>
+                    <li>Go to <kbd>Production → Categories</kbd></li>
+                    <li>Click <span class="badge bg-primary">+ Add Category</span></li>
+                    <li>Enter a <strong>Category Name</strong></li>
+                    <li>Click <span class="badge bg-success">Save</span></li>
                 </ol>
             </div>
 
-            <div class="alert alert-info mt-4">
-                <i class="bi bi-lightbulb me-1"></i> <strong>Example:</strong> You make custom banners. Materials: vinyl sheet (1), ink cartridge (0.5), grommets (4). Create a BOM called "Standard Banner". Each time you need a job for 50 banners, load the template — materials auto-fill.
+            <!-- Bill of Materials (BOM) -->
+            <div id="module-production-bom" class="mb-4">
+                <h4 class="mt-3"><i class="bi bi-file-text-fill me-2 text-warning"></i>Bill of Materials (BOM) Templates</h4>
+                <p><strong>What is a BOM?</strong> A reusable template that lists all materials needed for a production job. Saves time when you repeat the same job.</p>
+                
+                <h6>Example:</h6>
+                <p>You make custom banners. Each banner needs:</p>
+                <ul>
+                    <li>Vinyl sheet: 1 meter</li>
+                    <li>Ink: 0.5 cartridge</li>
+                    <li>Grommets: 4 pieces</li>
+                </ul>
+                <p>Create a BOM called "Standard Banner". Next time you need 50 banners, load the template and quantities auto-fill.</p>
+
+                <h6>Step-by-Step to Create a BOM:</h6>
+                <ol>
+                    <li>Go to <kbd>Production → Bill of Materials</kbd></li>
+                    <li>Click <span class="badge bg-primary">New Template</span></li>
+                    <li>Enter a <strong>Template Name</strong></li>
+                    <li>Add <strong>Materials</strong> with standard quantities</li>
+                    <li>Click <span class="badge bg-success">Save Template</span></li>
+                </ol>
+
+                <h6>How to Use a BOM in a Production Job:</h6>
+                <ol>
+                    <li>Go to <kbd>Production → New Job</kbd></li>
+                    <li>Under "Load from Template", select your BOM</li>
+                    <li>Click <span class="badge bg-primary">Load</span></li>
+                    <li>Materials auto-fill. Adjust quantities if needed.</li>
+                    <li>Complete the job as normal</li>
+                </ol>
             </div>
         </div>
 
         <!-- ========== EXPENSES ========== -->
         <div id="module-expenses" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-wallet2 me-2"></i>Expenses Module</h4>
-            <p><strong>What:</strong> Track business spending that aren't product purchases — rent, utilities, transportation, etc.</p>
-            <p><strong>How:</strong></p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-wallet2-fill me-2 text-secondary"></i>💸 Expenses</h2>
+            <p><strong>What are expenses?</strong> Business costs that aren't product purchases — rent, salaries, electricity, internet, etc.</p>
+
+            <h6>Step-by-Step to Add an Expense:</h6>
             <ol>
-                <li>Go to <em>Expenses > Add Expense</em>.</li>
-                <li>Select a <strong>Category</strong>, enter amount, description, and date.</li>
+                <li>Go to <kbd>Expenses → Add Expense</kbd></li>
+                <li>Select an <strong>Expense Category</strong> (or create one first)</li>
+                <li>Enter the <strong>Amount</strong> and <strong>Currency</strong></li>
+                <li>Pick the <strong>Expense Date</strong></li>
+                <li>Add a <strong>Description</strong> (e.g., "December rent payment")</li>
+                <li>Upload a <strong>Receipt</strong> image (optional but recommended)</li>
+                <li>Click <span class="badge bg-success">Save Expense</span></li>
             </ol>
-            <p><strong>Why:</strong> Expenses appear in financial reports so you see your full cost picture, not just product costs.</p>
+
+            <div class="tip-box">
+                <i class="bi bi-image-fill me-2"></i> <strong>Tip:</strong> Uploading receipts helps with audit trails. You can view them later from the expense list.
+            </div>
         </div>
 
         <!-- ========== ADJUSTMENTS ========== -->
         <div id="module-adjustments" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-arrow-down-up me-2 text-danger"></i>Adjustments Module</h4>
-            <p><strong>What:</strong> Record events that affect inventory outside of normal buying and selling — damaged goods, customer refunds, theft, returns, and other stock losses or gains.</p>
-            <p><strong>How:</strong></p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-arrow-down-up-fill me-2 text-danger"></i>📊 Adjustments (Damage/Returns)</h2>
+            <p><strong>When to use this module?</strong> When inventory changes due to damage, theft, customer returns, or refunds — outside of normal sales and purchases.</p>
+
+            <h6>Types of Adjustments:</h6>
+            <table class="table table-bordered table-sm">
+                <thead class="table-light">
+                    <tr><th>Type</th><th>When to Use</th><th>Stock Effect</th></tr>
+                </thead>
+                <tbody>
+                    <tr><td>Damage</td><td>Product broken during production or handling</td><td class="text-danger">Decreases</td></tr>
+                    <tr><td>Refund</td><td>Customer returns product AND gets money back</td><td class="text-danger">Decreases</td></tr>
+                    <tr><td>Return</td><td>Customer returns product (exchange, no refund)</td><td class="text-success">Increases</td></tr>
+                    <tr><td>Theft</td><td>Product stolen or missing</td><td class="text-danger">Decreases</td></tr>
+                    <tr><td>Other</td><td>Any other reason</td><td>Optional</td></tr>
+                </tbody>
+            </table>
+
+            <h6>Step-by-Step to Create an Adjustment:</h6>
             <ol>
-                <li>Go to <em>Adjustments > New Adjustment</em>.</li>
-                <li>Select the <strong>Product</strong> and <strong>Event Type</strong> (Damage, Refund, Return, Theft, Other).</li>
-                <li>Enter <strong>Quantity</strong>, <strong>Unit Cost</strong>, and an optional <strong>Customer</strong> (useful for refunds).</li>
-                <li>Choose whether to <strong>Adjust Stock</strong>:
-                    <ul>
-                        <li><strong>Yes</strong> — inventory is deducted (for damage, theft, refunds) or added (for returns).</li>
-                        <li><strong>No</strong> — the record is saved for tracking purposes only; stock levels stay the same.</li>
-                    </ul>
-                </li>
+                <li>Go to <kbd>Adjustments → New Adjustment</kbd></li>
+                <li>Select the <strong>Product</strong></li>
+                <li>Choose <strong>Event Type</strong> (Damage, Refund, Return, Theft, Other)</li>
+                <li>Enter <strong>Quantity</strong></li>
+                <li>Set <strong>Unit Cost</strong> (auto-fills from product purchase price)</li>
+                <li>Select <strong>Currency</strong></li>
+                <li>Choose <strong>Customer</strong> (for returns/refunds — optional)</li>
+                <li>Add a <strong>Reference</strong> (e.g., invoice number for a refund)</li>
+                <li>Write a <strong>Description</strong> explaining what happened</li>
+                <li>Select <strong>Adjust Stock?</strong> — Yes or No</li>
+                <li>Click <span class="badge bg-success">Record Adjustment</span></li>
             </ol>
-            <p><strong>Why:</strong></p>
-            <ul>
-                <li>Keeps inventory accurate when things are broken, stolen, or returned.</li>
-                <li>Shows who logged the event and when (audit trail).</li>
-                <li>Totals appear in <strong>Financial Reports</strong> so you see the true cost of stock losses.</li>
-            </ul>
+
+            <div class="success-box mt-3">
+                <i class="bi bi-graph-up-fill me-2"></i> <strong>Financial Impact:</strong> Adjustments appear in financial reports, so you can track total losses from damage and theft.
+            </div>
         </div>
 
         <!-- ========== REPORTS ========== -->
         <div id="module-reports" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-graph-up me-2"></i>Reports</h4>
-            <p><strong>What:</strong> Reports give you a data-driven view of your business. Filter by date range and export.</p>
-            <ul>
-                <li><strong>Inventory Reports</strong> — stock on hand, low-stock items, product movement.</li>
-                <li><strong>Sales Reports</strong> — revenue by period, by customer, best-sellers.</li>
-                <li><strong>Financial Reports</strong> — overview of income, expenses, and profit.</li>
-                <li><strong>Production Reports</strong> — jobs completed, material costs, production efficiency.</li>
-            </ul>
-            <p><strong>Why:</strong> Use these to spot trends, identify problems, and make informed decisions.</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-graph-up-fill me-2 text-primary"></i>📈 Reports</h2>
+            <p>Reports help you understand your business performance. All reports can be filtered by date range and exported to Excel or PDF.</p>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="module-card card p-3 mb-3" style="border-left-color: #0d6efd;">
+                        <h6><i class="bi bi-box-seam me-2 text-primary"></i>Inventory Reports</h6>
+                        <p class="small">See current stock levels, low-stock items, out-of-stock products, and stock valuation.</p>
+                        <p class="small mb-0"><strong>Use case:</strong> "What products need reordering?"</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="module-card card p-3 mb-3" style="border-left-color: #198754;">
+                        <h6><i class="bi bi-cart me-2 text-success"></i>Sales Reports</h6>
+                        <p class="small">View revenue by period, top-selling products, sales by customer, and sales by seller.</p>
+                        <p class="small mb-0"><strong>Use case:</strong> "Who are my best customers?"</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="module-card card p-3 mb-3" style="border-left-color: #dc3545;">
+                        <h6><i class="bi bi-currency-dollar me-2 text-danger"></i>Financial Reports</h6>
+                        <p class="small">See profit & loss, revenue, expenses, and adjustment impacts (damage, theft, refunds).</p>
+                        <p class="small mb-0"><strong>Use case:</strong> "Am I making a profit?"</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="module-card card p-3 mb-3" style="border-left-color: #ffc107;">
+                        <h6><i class="bi bi-gear me-2 text-warning"></i>Production Reports</h6>
+                        <p class="small">Track material usage, damage rates, job costs, and production efficiency.</p>
+                        <p class="small mb-0"><strong>Use case:</strong> "How much material is wasted?"</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="module-card card p-3 mb-3" style="border-left-color: #6f42c1;">
+                        <h6><i class="bi bi-arrow-left-right me-2 text-purple"></i>Stock Movement Report</h6>
+                        <p class="small">See every stock change: purchases, sales, production, adjustments.</p>
+                        <p class="small mb-0"><strong>Use case:</strong> "Why did stock change on this date?"</p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="module-card card p-3 mb-3" style="border-left-color: #fd7e14;">
+                        <h6><i class="bi bi-arrow-down-up me-2 text-orange"></i>Adjustments Report</h6>
+                        <p class="small">View all damage, refund, return, and theft events with totals.</p>
+                        <p class="small mb-0"><strong>Use case:</strong> "How much value was lost to damage?"</p>
+                    </div>
+                </div>
+            </div>
+
+            <h6>How to Use Reports:</h6>
+            <ol>
+                <li>Go to <kbd>Reports → [Report Type]</kbd></li>
+                <li>Set your <strong>Date Range</strong> (or use preset periods like "Last 30 Days")</li>
+                <li>Apply optional <strong>Filters</strong> (product, category, customer, etc.)</li>
+                <li>View the data in tables and charts</li>
+                <li>Click <span class="badge bg-success">Export</span> to download as Excel or PDF</li>
+            </ol>
+
+            <div class="tip-box">
+                <i class="bi bi-download me-2"></i> <strong>Tip:</strong> Export reports regularly for record-keeping or sharing with accountants.
+            </div>
         </div>
 
-        <!-- ========== ADMIN ========== -->
+        <!-- ========== ADMINISTRATION ========== -->
         <div id="module-administration" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-shield-lock me-2"></i>Administration</h4>
-            <p>Admin tools for managing the system itself (only available to users with admin permissions).</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-shield-lock-fill me-2 text-secondary"></i>⚙️ Administration</h2>
+            <p><strong>Note:</strong> These features are only available to users with <strong>Admin</strong> role.</p>
+
+            <h6>User Management:</h6>
+            <ol>
+                <li>Go to <kbd>Administration → User Management</kbd></li>
+                <li>Click <span class="badge bg-primary">Add User</span></li>
+                <li>Fill in username, email, password, full name, phone, and role</li>
+                <li>Set <strong>Active</strong> status (inactive users cannot log in)</li>
+                <li>Click <span class="badge bg-success">Save</span></li>
+            </ol>
+
+            <h6>Role Permissions:</h6>
+            <ol>
+                <li>Go to <kbd>Administration → Role Permissions</kbd></li>
+                <li>Select a role (Admin, Manager, Staff)</li>
+                <li>Check/uncheck permissions for each module</li>
+                <li>Click <span class="badge bg-success">Save Permissions</span></li>
+            </ol>
+
+            <h6>System Settings:</h6>
             <ul>
-                <li><strong>Users</strong> — add, edit, activate, or deactivate user accounts.</li>
-                <li><strong>Roles &amp; Permissions</strong> — define what each role can access (e.g. view-only for sales, full access for managers).</li>
-                <li><strong>System Settings</strong> — company name, currency defaults, etc.</li>
-                <li><strong>Backup</strong> — download a copy of your database. <strong>Do this regularly!</strong></li>
-                <li><strong>Audit Logs</strong> — see who did what and when in the system.</li>
+                <li><strong>Business Information:</strong> Company name, address, phone, email (appears on invoices)</li>
+                <li><strong>Currency Settings:</strong> Default currency, exchange rates</li>
+                <li><strong>Invoice Settings:</strong> Tax rate, invoice prefix</li>
+            </ul>
+
+            <h6>Backup Management:</h6>
+            <div class="warning-box">
+                <i class="bi bi-database-fill me-2"></i> <strong>Important:</strong> Create regular backups! If your database is lost, backups are the only way to recover.
+            </div>
+            <ol>
+                <li>Go to <kbd>Administration → Backup</kbd></li>
+                <li>Click <span class="badge bg-primary">Create Backup</span></li>
+                <li>The system creates a .sql file with all your data</li>
+                <li>Download and store it safely (external drive, cloud storage)</li>
+            </ol>
+
+            <h6>Audit Logs:</h6>
+            <p>View a complete history of who did what in the system. Useful for security and troubleshooting.</p>
+            <ul>
+                <li>See user actions (create, update, delete)</li>
+                <li>Track IP addresses and timestamps</li>
+                <li>Filter by user, action, or date range</li>
+                <li>Export logs for external review</li>
             </ul>
         </div>
 
-        <!-- ========== PROFILE ========== -->
+        <!-- ========== PROFILE & SECURITY ========== -->
         <div id="module-profile" class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-person-circle me-2"></i>Profile &amp; Settings</h4>
-            <p>Click your name in the top-right corner to access:</p>
-            <ul>
-                <li><strong>My Profile</strong> — update your name, email, and phone.</li>
-                <li><strong>Change Password</strong> — update your login password.</li>
-                <li><strong>2-Factor Authentication</strong> — add an extra layer of security.</li>
-            </ul>
-            <p>Use the <strong>currency selector</strong> (top-right) to switch amounts between Liberian Dollars (LRD) and US Dollars (USD).</p>
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-person-circle-fill me-2 text-primary"></i>👤 Profile &amp; Security</h2>
+
+            <h6>Updating Your Profile:</h6>
+            <ol>
+                <li>Click your name in the top-right corner</li>
+                <li>Select <strong>My Profile</strong></li>
+                <li>Update your name, email, or phone number</li>
+                <li>Click <span class="badge bg-success">Update Profile</span></li>
+            </ol>
+
+            <h6>Changing Your Password:</h6>
+            <ol>
+                <li>Go to <kbd>Profile → Change Password</kbd></li>
+                <li>Enter your <strong>Current Password</strong></li>
+                <li>Enter a <strong>New Password</strong> (minimum 6 characters)</li>
+                <li>Confirm the new password</li>
+                <li>Click <span class="badge bg-success">Change Password</span></li>
+            </ol>
+
+            <h6>Two-Factor Authentication (2FA):</h6>
+            <p>Add an extra layer of security. After enabling, you'll need both your password and a code from your phone to log in.</p>
+            
+            <h6>Step-by-Step to Enable 2FA:</h6>
+            <ol>
+                <li>Go to <kbd>Profile → Setup 2FA</kbd></li>
+                <li>Scan the QR code with Google Authenticator or similar app</li>
+                <li>Enter the 6-digit code from your app</li>
+                <li>Click <span class="badge bg-success">Enable 2FA</span></li>
+            </ol>
+
+            <div class="tip-box">
+                <i class="bi bi-shield-check me-2"></i> <strong>Tip:</strong> Store backup codes in a safe place. If you lose your phone, you'll need them to access your account.
+            </div>
         </div>
 
-        <!-- Quick Reference -->
-        <div class="guide-section mb-5">
-            <h4 class="border-bottom pb-2 mb-3"><i class="bi bi-table me-2"></i>Quick Reference</h4>
+        <!-- ========== FAQ ========== -->
+        <div id="faq" class="guide-section mb-5">
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-question-circle-fill me-2 text-info"></i>❓ Frequently Asked Questions</h2>
+
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How do I record a customer return?
+                        </button>
+                    </h3>
+                    <div id="faq1" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Go to <kbd>Adjustments → New Adjustment</kbd>. Select the product, choose <strong>Event Type: Return</strong>, enter the quantity, and set <strong>Adjust Stock: Yes</strong>. This adds the product back to inventory.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq2">
+                            What's the difference between Stock Adjustment and Adjustments module?
+                        </button>
+                    </h3>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            <strong>Stock Adjustment</strong> (Inventory module) is for manual stock corrections like physical counts. <strong>Adjustments</strong> (separate module) is for tracking damage, returns, refunds, and theft — with links to sales and production jobs.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq3">
+                            Can I edit a completed production job?
+                        </button>
+                    </h3>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            No. Once a job is marked <strong>Completed</strong>, materials are deducted from inventory and the job is locked. You can cancel it first, but that doesn't restore inventory.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq4">
+                            How do I switch between LRD and USD?
+                        </button>
+                    </h3>
+                    <div id="faq4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Click the currency selector in the top-right corner of the navbar and choose LRD or USD. All amounts will convert using the current exchange rate.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq5">
+                            Why can't I delete a product?
+                        </button>
+                    </h3>
+                    <div id="faq5" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            Products with existing sales, purchases, or production usage cannot be deleted. Instead, you can set them as inactive or adjust stock to zero.
+                        </div>
+                    </div>
+                </div>
+
+                <div class="accordion-item">
+                    <h3 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#faq6">
+                            How often should I create backups?
+                        </button>
+                    </h3>
+                    <div id="faq6" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body">
+                            For active businesses: <strong>daily</strong>. For smaller operations: at least <strong>weekly</strong>. Always backup before making major changes.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ========== KEYBOARD SHORTCUTS ========== -->
+        <div id="keyboard-shortcuts" class="guide-section mb-5">
+            <h2 class="border-bottom pb-2 mb-3"><i class="bi bi-keyboard-fill me-2 text-secondary"></i>⌨️ Keyboard Shortcuts</h2>
             <div class="table-responsive">
-                <table class="table table-bordered table-sm">
+                <table class="table table-bordered">
                     <thead class="table-light">
-                        <tr><th>Action</th><th>Go To</th><th>Effect on Stock</th></tr>
+                        <tr><th>Shortcut</th><th>Action</th></tr>
                     </thead>
                     <tbody>
-                        <tr><td>Add a new product</td><td>Inventory > Products > New</td><td>No change</td></tr>
-                        <tr><td>Buy materials</td><td>Purchases > New Purchase</td><td><span class="text-success">Stock increases</span></td></tr>
-                        <tr><td>Sell to customer</td><td>Sales > New Sale</td><td><span class="text-danger">Stock decreases</span></td></tr>
-                        <tr><td>Create production job</td><td>Production > New Job</td><td>No change (Draft)</td></tr>
-                        <tr><td>Complete production job</td><td>Job list > Mark as Completed</td><td><span class="text-danger">Materials deducted</span></td></tr>
-                        <tr><td>Manual stock adjustment</td><td>Inventory > Stock Adjustments</td><td>Increases or decreases</td></tr>
-                        <tr><td>View financial overview</td><td>Reports > Financial</td><td>Read-only</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>N</kbd></td><td>Create new (product, sale, purchase, etc.)</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>S</kbd></td><td>Save current form</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>F</kbd></td><td>Focus search box</td></tr>
+                        <tr><td><kbd>Esc</kbd></td><td>Close modal or cancel</td></tr>
+                        <tr><td><kbd>Ctrl</kbd> + <kbd>P</kbd></td><td>Print current page/invoice</td></tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <!-- Footer -->
+        <hr class="mt-5">
+        <p class="text-center text-muted small">
+            <i class="bi bi-question-circle"></i> Need more help? Contact your system administrator.<br>
+            Version 1.0 | Last updated: <?= date('F j, Y') ?>
+        </p>
     </div>
 </div>
 
@@ -399,11 +861,11 @@ $(document).ready(function() {
     // Highlight active sidebar section on scroll
     var navLinks = $('.guide-sidebar a');
     $(window).on('scroll', function() {
-        var scrollPos = $(document).scrollTop() + 100;
+        var scrollPos = $(document).scrollTop() + 120;
         navLinks.each(function() {
             var target = $(this.getAttribute('href'));
             if (target.length) {
-                if (target.position().top <= scrollPos) {
+                if (target.position().top <= scrollPos && target.position().top + target.outerHeight() > scrollPos) {
                     navLinks.removeClass('active');
                     $(this).addClass('active');
                 }
@@ -416,7 +878,9 @@ $(document).ready(function() {
         e.preventDefault();
         var target = $(this.getAttribute('href'));
         if (target.length) {
-            $('html, body').animate({ scrollTop: target.offset().top - 70 }, 300);
+            $('html, body').animate({ scrollTop: target.offset().top - 80 }, 300);
+            // Update URL hash without jumping
+            history.pushState(null, null, this.getAttribute('href'));
         }
     });
 });

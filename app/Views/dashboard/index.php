@@ -4,7 +4,7 @@
 <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
     <div>
         <h2 class="mb-1"><i class="bi bi-speedometer2 me-2"></i>Dashboard</h2>
-        <p class="text-muted mb-0">A live operational summary of inventory, sales, expenses, purchases, and production.</p>
+        <p class="text-muted mb-0">A live operational summary of inventory, sales, expenses, purchases, production, and adjustments.</p>
     </div>
 
     <form id="dashboardFilters" class="row g-2 align-items-end dashboard-filter-form">
@@ -46,6 +46,7 @@
     <small class="text-muted">Last updated: <span id="dashboardUpdatedAt">-</span></small>
 </div>
 
+<!-- Row 1: Summary Cards -->
 <div class="row g-3 mb-4">
     <div class="col-md-6 col-xl-3">
         <div class="card h-100 border-0 shadow-sm">
@@ -105,6 +106,7 @@
     </div>
 </div>
 
+<!-- Row 2: Financial Cards -->
 <div class="row g-3 mb-4">
     <div class="col-lg-6 col-xl-3">
         <div class="card h-100 border-0 shadow-sm">
@@ -156,6 +158,90 @@
     </div>
 </div>
 
+<!-- Row 3: Net Profit, Efficiency, and Adjustments -->
+<div class="row g-3 mb-4">
+    <div class="col-lg-6 col-xl-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pb-0">
+                <h6 class="mb-0">Net Profit / Loss</h6>
+            </div>
+            <div class="card-body">
+                <div class="dashboard-currency-line">
+                    <span>LRD</span>
+                    <strong id="netProfitLrd" class="text-success">L$ 0.00</strong>
+                </div>
+                <div class="dashboard-currency-line">
+                    <span>USD</span>
+                    <strong id="netProfitUsd" class="text-success">$ 0.00</strong>
+                </div>
+                <div class="small text-muted mt-2">Revenue - All Costs</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 col-xl-3">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pb-0">
+                <h6 class="mb-0">Production Efficiency</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="display-6 fw-bold" id="productionEfficiency">100%</div>
+                <div class="small text-muted mt-2">Material usage efficiency</div>
+                <div class="progress mt-2" style="height: 8px;">
+                    <div id="efficiencyBar" class="progress-bar bg-success" style="width: 100%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6 col-xl-6">
+        <div class="card h-100 border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pb-0">
+                <h6 class="mb-0">Stock Adjustments (Damage, Theft, Refunds)</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="dashboard-currency-line">
+                            <span>Damage LRD</span>
+                            <strong id="damageLrd" class="text-danger">L$ 0.00</strong>
+                        </div>
+                        <div class="dashboard-currency-line">
+                            <span>Damage USD</span>
+                            <strong id="damageUsd" class="text-danger">$ 0.00</strong>
+                        </div>
+                        <div class="dashboard-currency-line">
+                            <span>Theft LRD</span>
+                            <strong id="theftLrd" class="text-danger">L$ 0.00</strong>
+                        </div>
+                        <div class="dashboard-currency-line">
+                            <span>Theft USD</span>
+                            <strong id="theftUsd" class="text-danger">$ 0.00</strong>
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="dashboard-currency-line">
+                            <span>Refunds LRD</span>
+                            <strong id="refundsLrd" class="text-warning">L$ 0.00</strong>
+                        </div>
+                        <div class="dashboard-currency-line">
+                            <span>Refunds USD</span>
+                            <strong id="refundsUsd" class="text-warning">$ 0.00</strong>
+                        </div>
+                        <div class="dashboard-currency-line">
+                            <span>Returns LRD</span>
+                            <strong id="returnsLrd" class="text-info">L$ 0.00</strong>
+                        </div>
+                        <div class="dashboard-currency-line">
+                            <span>Returns USD</span>
+                            <strong id="returnsUsd" class="text-info">$ 0.00</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Row 4: Charts -->
 <div class="row g-3 mb-4">
     <div class="col-xl-8">
         <div class="card border-0 shadow-sm h-100">
@@ -181,6 +267,7 @@
     </div>
 </div>
 
+<!-- Row 5: Category and Operational Snapshot -->
 <div class="row g-3 mb-4">
     <div class="col-lg-5">
         <div class="card border-0 shadow-sm h-100">
@@ -236,6 +323,7 @@
     </div>
 </div>
 
+<!-- Row 6: Top Products and Recent Transactions -->
 <div class="row g-3">
     <div class="col-xl-5">
         <div class="card border-0 shadow-sm h-100">
@@ -284,6 +372,7 @@
     </div>
 </div>
 
+<!-- Row 7: Low Stock Watchlist -->
 <div class="row mt-4">
     <div class="col-12">
         <div class="card border-0 shadow-sm" id="lowStockPanel">
@@ -357,6 +446,8 @@ function loadDashboardData() {
             const data = response.data;
             updateSummaryCards(data);
             updateFinancialCards(data.financial_summary, data.activity_summary);
+            updateNetProfitAndEfficiency(data);
+            updateAdjustmentsCards(data.financial_summary);
             updateOperationalSummary(data.activity_summary, data.inventory_summary);
             updateFinancialTrendChart(data.financial_trend);
             updateActivityTrendChart(data.activity_trend);
@@ -400,6 +491,49 @@ function updateFinancialCards(financial, activity) {
     $('#productionLrd').text(formatCurrency(financial.production_cost.LRD, 'LRD'));
     $('#productionUsd').text(formatCurrency(financial.production_cost.USD, 'USD'));
     $('#productionCount').text(financial.production_cost.count || activity.production_count || 0);
+}
+
+function updateNetProfitAndEfficiency(data) {
+    if (data.net_profit) {
+        const profitLrd = data.net_profit.LRD.net_profit;
+        const profitUsd = data.net_profit.USD.net_profit;
+        
+        $('#netProfitLrd').text(formatCurrency(profitLrd, 'LRD'));
+        $('#netProfitUsd').text(formatCurrency(profitUsd, 'USD'));
+        
+        $('#netProfitLrd').removeClass('text-success text-danger').addClass(profitLrd >= 0 ? 'text-success' : 'text-danger');
+        $('#netProfitUsd').removeClass('text-success text-danger').addClass(profitUsd >= 0 ? 'text-success' : 'text-danger');
+    }
+    
+    if (data.production_efficiency) {
+        const efficiency = data.production_efficiency.LRD;
+        $('#productionEfficiency').text(efficiency + '%');
+        $('#efficiencyBar').css('width', efficiency + '%');
+        $('#efficiencyBar').removeClass('bg-success bg-warning bg-danger')
+            .addClass(efficiency >= 80 ? 'bg-success' : (efficiency >= 50 ? 'bg-warning' : 'bg-danger'));
+    }
+}
+
+function updateAdjustmentsCards(financial) {
+    if (financial.adjustments) {
+        const adjustments = financial.adjustments;
+        
+        // Damage
+        $('#damageLrd').text(formatCurrency((adjustments.Damage?.total_value || 0), 'LRD'));
+        $('#damageUsd').text(formatCurrency((adjustments.USD?.Damage?.total_value || 0), 'USD'));
+        
+        // Theft
+        $('#theftLrd').text(formatCurrency((adjustments.Theft?.total_value || 0), 'LRD'));
+        $('#theftUsd').text(formatCurrency((adjustments.USD?.Theft?.total_value || 0), 'USD'));
+        
+        // Refunds
+        $('#refundsLrd').text(formatCurrency((adjustments.Refund?.total_value || 0), 'LRD'));
+        $('#refundsUsd').text(formatCurrency((adjustments.USD?.Refund?.total_value || 0), 'USD'));
+        
+        // Returns
+        $('#returnsLrd').text(formatCurrency((adjustments.Return?.total_value || 0), 'LRD'));
+        $('#returnsUsd').text(formatCurrency((adjustments.USD?.Return?.total_value || 0), 'USD'));
+    }
 }
 
 function updateOperationalSummary(activity, inventory) {
@@ -611,7 +745,7 @@ function updateTopProductsTable(products) {
         products.forEach(product => {
             const productUrl = '<?= base_url('inventory/products/view/') ?>' + product.id;
             topProductsTable.row.add([
-                `<a href="${productUrl}" class="text-decoration-none">${product.product_name}</a>`,
+                `<a href="${productUrl}" class="text-decoration-none">${escapeHtml(product.product_name)}</a>`,
                 formatNumber(product.total_quantity),
                 String(product.invoice_count)
             ]);
@@ -642,11 +776,11 @@ function updateRecentTransactions(transactions) {
         transactions.forEach(item => {
             recentTransactionsTable.row.add([
                 item.date ? item.date.substring(0, 16).replace('T', ' ') : '-',
-                `<span class="badge bg-light text-dark border">${item.module}</span>`,
-                `<a href="${item.link}" class="text-decoration-none">${item.reference}</a>`,
-                item.party,
+                `<span class="badge bg-light text-dark border">${escapeHtml(item.module)}</span>`,
+                `<a href="${item.link}" class="text-decoration-none">${escapeHtml(item.reference)}</a>`,
+                escapeHtml(item.party),
                 formatCurrency(item.amount, item.currency),
-                `<span class="badge ${resolveStatusClass(item.status)}">${item.status}</span>`
+                `<span class="badge ${resolveStatusClass(item.status)}">${escapeHtml(item.status)}</span>`
             ]);
         });
     }
@@ -673,10 +807,10 @@ function updateLowStockTable(items) {
     if (items && items.length) {
         items.forEach(item => {
             lowStockTable.row.add([
-                item.product_name,
+                escapeHtml(item.product_name),
                 `<span class="text-danger fw-semibold">${formatNumber(item.quantity)}</span>`,
                 formatNumber(item.minimum_stock),
-                item.unit_symbol || item.unit_name || '-',
+                escapeHtml(item.unit_symbol || item.unit_name || '-'),
                 `<a href="<?= base_url('inventory/products/edit/') ?>${item.id}" class="btn btn-sm btn-outline-primary">Review</a>`
             ]);
         });
@@ -690,8 +824,10 @@ function resolveStatusClass(status) {
         case 'Paid':
         case 'Recorded':
         case 'Received':
+        case 'Completed':
             return 'bg-success';
         case 'Partial':
+        case 'Partially Paid':
             return 'bg-warning text-dark';
         case 'Unpaid':
         case 'Draft':
@@ -699,6 +835,16 @@ function resolveStatusClass(status) {
         default:
             return 'bg-light text-dark border';
     }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 
 $(document).ready(function() {

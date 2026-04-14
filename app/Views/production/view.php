@@ -47,24 +47,18 @@
                         <strong>Category:</strong><br>
                         <?php if (!empty($job['production_category_id'])): ?>
                             <?php
-                            // Get category name - you might need to load this in the controller
-                            $categoryName = 'Unknown';
-                            if (isset($job['category_name'])) {
-                                $categoryName = $job['category_name'];
-                            }
+                            $categoryName = $job['category_name'] ?? 'Unknown';
                             ?>
                             <?= esc($categoryName) ?>
                         <?php else: ?>
                             <span class="text-muted">No category assigned</span>
                         <?php endif; ?>
                     </div>
-                </div>
-
-                <div class="row mb-4">
                     <div class="col-md-6">
                         <strong>Quantity Produced:</strong><br>
                         <?= number_format($job['quantity_produced'] ?? 0, 2) ?>
                     </div>
+                </div>
 
                 <div class="row mb-4">
                     <div class="col-md-6">
@@ -93,7 +87,7 @@
                 <div class="card mb-4" id="adjustmentsSection">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
                         <h6 class="mb-0"><i class="bi bi-exclamation-triangle me-2"></i>Damage / Waste</h6>
-                        <a href="<?= base_url('adjustments/job/' . $job['id']) ?>" class="btn btn-sm btn-outline-danger">
+                        <a href="<?= base_url('adjustments/from-job/' . $job['id']) ?>" class="btn btn-sm btn-outline-danger">
                             <i class="bi bi-plus-circle"></i> Record Damage
                         </a>
                     </div>
@@ -157,13 +151,18 @@
             </div>
 
             <div class="card-footer d-flex justify-content-between align-items-center">
-                <!-- Left: Edit button (Draft only) -->
+                <!-- Left: Edit and Print buttons -->
                 <div>
                     <?php if ($status === 'Draft'): ?>
                         <a href="<?= base_url('production/edit/' . $job['id']) ?>" class="btn btn-warning btn-sm">
                             <i class="bi bi-pencil"></i> Edit Job
                         </a>
                     <?php endif; ?>
+                    
+                    <!-- PRINT BUTTON - Available for all statuses -->
+                    <a href="<?= base_url('production/print/' . $job['id']) ?>" target="_blank" class="btn btn-info btn-sm text-white">
+                        <i class="bi bi-printer"></i> Print Worksheet
+                    </a>
                 </div>
 
                 <!-- Right: Action buttons -->
@@ -242,6 +241,42 @@ function deleteJob(id) {
         () => window.location.href = '<?= base_url('production/jobs') ?>'
     );
 }
+
+// Load adjustments for this production job
+$(document).ready(function() {
+    const jobId = <?= $job['id'] ?>;
+    
+    $.ajax({
+        url: '<?= base_url('adjustments/api/get-by-job/') ?>' + jobId,
+        type: 'GET',
+        dataType: 'json',
+        success: function(response) {
+            if (response.status === 'success' && response.data && response.data.length > 0) {
+                let html = '<div class="table-responsive"><table class="table table-sm table-bordered">';
+                html += '<thead><tr><th>Date</th><th>Product</th><th>Type</th><th>Quantity</th><th>Total Value</th><th>Reference</th></tr></thead><tbody>';
+                
+                response.data.forEach(function(adj) {
+                    html += '<tr>';
+                    html += '<td>' + new Date(adj.event_date).toLocaleDateString() + '</td>';
+                    html += '<td>' + (adj.product_name || 'Product #' + adj.product_id) + '</td>';
+                    html += '<td><span class="badge bg-danger">' + adj.event_type + '</span></td>';
+                    html += '<td>' + parseFloat(adj.quantity).toFixed(2) + '</td>';
+                    html += '<td>' + adj.currency + ' ' + parseFloat(adj.total_value).toFixed(2) + '</td>';
+                    html += '<td>' + (adj.reference || '-') + '</td>';
+                    html += '</tr>';
+                });
+                
+                html += '</tbody></table></div>';
+                $('#adjustmentList').html(html);
+            } else {
+                $('#adjustmentList').html('<em class="text-muted">No damage/waste recorded for this job.</em>');
+            }
+        },
+        error: function() {
+            $('#adjustmentList').html('<em class="text-muted">Unable to load adjustment data.</em>');
+        }
+    });
+});
 </script>
 
 <?= $this->endSection() ?>

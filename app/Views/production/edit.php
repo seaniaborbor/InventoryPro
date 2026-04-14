@@ -11,6 +11,9 @@
                 </a>
             </div>
             <div class="card-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i> Edit production job details. Changes to materials will update cost calculations.
+                </div>
 
                 <form id="productionForm">
                     <?= csrf_field() ?>
@@ -65,15 +68,40 @@
                         </div>
                     </div>
 
+                    <!-- Currency and Status Section - FIXED to match create form -->
                     <div class="row mb-3">
-                        <div class="col-md-6">
+                        <div class="col-md-3">
                             <label for="currency" class="form-label">Currency</label>
                             <select class="form-select" id="currency" name="currency">
                                 <option value="LRD" <?= $job['currency'] === 'LRD' ? 'selected' : '' ?>>LRD - Liberian Dollar</option>
                                 <option value="USD" <?= $job['currency'] === 'USD' ? 'selected' : '' ?>>USD - US Dollar</option>
                             </select>
                         </div>
-                        <div class="col-md-6">
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">Status</label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="Draft" <?= ($job['status'] ?? 'Draft') === 'Draft' ? 'selected' : '' ?>>Draft</option>
+                                <option value="Completed" <?= ($job['status'] ?? '') === 'Completed' ? 'selected' : '' ?>>Completed</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="payment_status" class="form-label">Payment Status</label>
+                            <select class="form-select" id="payment_status" name="payment_status">
+                                <option value="Unpaid" <?= ($job['payment_status'] ?? 'Unpaid') === 'Unpaid' ? 'selected' : '' ?>>Unpaid</option>
+                                <option value="Partially Paid" <?= ($job['payment_status'] ?? '') === 'Partially Paid' ? 'selected' : '' ?>>Partially Paid</option>
+                                <option value="Paid" <?= ($job['payment_status'] ?? '') === 'Paid' ? 'selected' : '' ?>>Paid</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="amount_paid" class="form-label">Amount Paid</label>
+                            <input type="number" step="0.01" min="0" class="form-control"
+                                   id="amount_paid" name="amount_paid" value="<?= esc($job['amount_paid'] ?? 0) ?>">
+                        </div>
+                    </div>
+
+                    <!-- BOM Template Section -->
+                    <div class="row mb-3">
+                        <div class="col-md-12">
                             <label for="bom_template" class="form-label">Load from Template</label>
                             <div class="input-group">
                                 <select class="form-select" id="bom_template">
@@ -147,6 +175,8 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 // Pre-load existing materials from PHP
 let materials = <?= json_encode(array_map(function($mat) {
@@ -159,7 +189,6 @@ let materials = <?= json_encode(array_map(function($mat) {
 }, $job['materials'] ?? [])) ?>;
 
 $(document).ready(function() {
-
     // Render existing materials on page load
     renderMaterials();
 
@@ -169,12 +198,43 @@ $(document).ready(function() {
         $('#material_cost').val(price);
     });
 
-    // FORM SUBMIT
+    // Auto-update payment status based on amount paid
+    $('#amount_paid').on('change keyup', function() {
+        const amountPaid = parseFloat($(this).val()) || 0;
+        const totalCost = parseFloat($('#totalCost').text().replace(/,/g, '')) || 0;
+        
+        if (amountPaid <= 0) {
+            $('#payment_status').val('Unpaid');
+        } else if (totalCost > 0 && amountPaid >= totalCost) {
+            $('#payment_status').val('Paid');
+        } else if (amountPaid > 0) {
+            $('#payment_status').val('Partially Paid');
+        }
+    });
+
+    // Update total cost when materials change
+    function updateTotalCost() {
+        let totalCost = 0;
+        materials.forEach(material => {
+            totalCost += material.quantity * material.unit_cost;
+        });
+        $('#totalCost').text(formatNumber(totalCost));
+        
+        // Trigger payment status update
+        $('#amount_paid').trigger('change');
+    }
+
+    // FORM SUBMIT with SweetAlert
     $('#productionForm').on('submit', function(e) {
         e.preventDefault();
 
         if (materials.length === 0) {
-            alert('❌ Please add at least one material to the production job.');
+            Swal.fire({
+                icon: 'error',
+                title: 'No Materials',
+                text: 'Please add at least one material to the production job.',
+                confirmButtonColor: '#d33'
+            });
             return;
         }
 
@@ -184,11 +244,21 @@ $(document).ready(function() {
             production_date:     $('#production_date').val(),
             quantity_produced:   parseFloat($('#quantity_produced').val()) || 0,
             currency:            $('#currency').val(),
+            status:              $('#status').val(),
+            payment_status:      $('#payment_status').val(),
+            amount_paid:         parseFloat($('#amount_paid').val()) || 0,
             notes:               $('#notes').val().trim(),
             materials:           materials
         };
 
-        console.log('📤 Sending update:', formData);
+        Swal.fire({
+            title: 'Updating...',
+            text: 'Please wait while we update the production job',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         $.ajax({
             url: '<?= base_url('production/update/' . $job['id']) ?>',
@@ -202,12 +272,23 @@ $(document).ready(function() {
             success: function(response) {
                 console.log('✅ Server Response:', response);
                 if (response.status === 'success') {
-                    alert('✅ Production job updated successfully!');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Success!',
+                        text: 'Production job updated successfully!',
+                        timer: 1500,
+                        showConfirmButton: false
+                    });
                     setTimeout(() => {
                         window.location.href = '<?= base_url('production/view/' . $job['id']) ?>';
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    alert('❌ ' + (response.message || 'Failed to update production job'));
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to update production job',
+                        confirmButtonColor: '#d33'
+                    });
                 }
             },
             error: function(xhr, status, error) {
@@ -216,7 +297,12 @@ $(document).ready(function() {
                     responseText: xhr.responseText,
                     error: error
                 });
-                alert('❌ Server error occurred.\nCheck browser console (F12) for details.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'An error occurred while updating. Check browser console for details.',
+                    confirmButtonColor: '#d33'
+                });
             }
         });
     });
@@ -229,16 +315,37 @@ function addMaterial() {
     const unitCost     = parseFloat($('#material_cost').val());
 
     if (!materialId || isNaN(quantity) || quantity <= 0 || isNaN(unitCost) || unitCost < 0) {
-        alert('❌ Please select a material and enter valid quantity and unit cost.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Input',
+            text: 'Please select a material and enter valid quantity and unit cost.',
+            confirmButtonColor: '#3085d6'
+        });
         return;
     }
 
-    materials.push({
-        product_id:   parseInt(materialId),
-        product_name: materialName,
-        quantity:     quantity,
-        unit_cost:    unitCost
-    });
+    // Check if material already exists
+    const existingIndex = materials.findIndex(m => m.product_id === parseInt(materialId));
+    
+    if (existingIndex !== -1) {
+        // Update existing material quantity
+        materials[existingIndex].quantity += quantity;
+        Swal.fire({
+            icon: 'info',
+            title: 'Quantity Updated',
+            text: `${materialName} quantity increased by ${quantity}`,
+            timer: 1500,
+            showConfirmButton: false
+        });
+    } else {
+        // Add new material
+        materials.push({
+            product_id:   parseInt(materialId),
+            product_name: materialName,
+            quantity:     quantity,
+            unit_cost:    unitCost
+        });
+    }
 
     renderMaterials();
     $('#material_quantity').val('');
@@ -254,7 +361,7 @@ function renderMaterials() {
         totalCost += lineTotal;
 
         html += `<tr>
-            <td><strong>${material.product_name}</strong></td>
+            <td><strong>${escapeHtml(material.product_name)}</strong></td>
             <td>${formatNumber(material.quantity)}</td>
             <td>${formatNumber(material.unit_cost)}</td>
             <td class="fw-bold text-end">${formatNumber(lineTotal)}</td>
@@ -268,44 +375,114 @@ function renderMaterials() {
 
     $('#materialsBody').html(html);
     $('#totalCost').text(formatNumber(totalCost));
+    
+    // Trigger payment status update
+    $('#amount_paid').trigger('change');
 }
 
 function removeMaterial(index) {
+    const materialName = materials[index].product_name;
     materials.splice(index, 1);
     renderMaterials();
+    
+    Swal.fire({
+        icon: 'info',
+        title: 'Material Removed',
+        text: `${materialName} has been removed.`,
+        timer: 1500,
+        showConfirmButton: false
+    });
 }
 
 function loadTemplate() {
     const templateId = $('#bom_template').val();
-    if (!templateId) return alert('Please select a template first.');
+    if (!templateId) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No Template Selected',
+            text: 'Please select a template first.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
 
-    if (!confirm('⚠️ Loading a template will replace all current materials. Continue?')) return;
+    Swal.fire({
+        title: 'Load Template?',
+        text: '⚠️ Loading a template will replace all current materials. Continue?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Yes, load template'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            Swal.fire({
+                title: 'Loading Template...',
+                text: 'Please wait',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
 
-    $.ajax({
-        url: '<?= base_url('production/get-materials') ?>/' + templateId,
-        type: 'GET',
-        success: function(response) {
-            if (response.status === 'success' && response.data) {
-                materials = [];
-                response.data.forEach(item => {
-                    materials.push({
-                        product_id:   parseInt(item.product_id),
-                        product_name: item.product_name,
-                        quantity:     parseFloat(item.quantity),
-                        unit_cost:    parseFloat(item.unit_cost || 0)
+            $.ajax({
+                url: '<?= base_url('production/get-materials') ?>/' + templateId,
+                type: 'GET',
+                success: function(response) {
+                    Swal.close();
+                    if (response.status === 'success' && response.data) {
+                        materials = [];
+                        response.data.forEach(item => {
+                            materials.push({
+                                product_id:   parseInt(item.product_id),
+                                product_name: item.product_name,
+                                quantity:     parseFloat(item.quantity),
+                                unit_cost:    parseFloat(item.unit_cost || 0)
+                            });
+                        });
+                        renderMaterials();
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Template Loaded!',
+                            text: `${response.data.length} materials added to the job.`,
+                            confirmButtonColor: '#3085d6',
+                            timer: 2000
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Failed',
+                            text: 'Failed to load template.',
+                            confirmButtonColor: '#d33'
+                        });
+                    }
+                },
+                error: function() {
+                    Swal.close();
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: 'Could not load template. Please try again.',
+                        confirmButtonColor: '#d33'
                     });
-                });
-                renderMaterials();
-                alert('✅ Template loaded successfully!');
-            } else {
-                alert('Failed to load template.');
-            }
+                }
+            });
         }
     });
 }
 
 function formatNumber(num) {
     return parseFloat(num).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
 }
 </script>
 

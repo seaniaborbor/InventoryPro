@@ -549,10 +549,13 @@ class Inventory extends BaseController
         return view('inventory/stock_adjustments', $data);
     }
 
-  
-    
+
+
     /**
      * Get Stock Adjustments (AJAX)
+     */
+    /**
+     * Get Stock Adjustments (AJAX) - FIXED to show actual reason
      */
     public function getStockAdjustments()
     {
@@ -561,25 +564,38 @@ class Inventory extends BaseController
         }
 
         try {
-            $adjustments = $this->stockMovementModel
+            $productId = $this->request->getGet('product_id');
+
+            $builder = $this->stockMovementModel
                 ->select('stock_movements.*, products.product_name, users.full_name as created_by_name')
                 ->join('products', 'products.id = stock_movements.product_id', 'left')
                 ->join('users', 'users.id = stock_movements.created_by', 'left')
-                ->where('stock_movements.movement_type', 'Adjustment')
-                ->orderBy('stock_movements.created_at', 'DESC')
-                ->findAll();
+                ->where('stock_movements.movement_type', 'Adjustment');
+
+            // Filter by product if specified
+            if ($productId) {
+                $builder->where('stock_movements.product_id', $productId);
+            }
+
+            $adjustments = $builder->orderBy('stock_movements.created_at', 'DESC')->findAll();
 
             // Format the data for display
             $formattedData = [];
             foreach ($adjustments as $adj) {
                 $formattedData[] = [
+                    'id' => $adj['id'],
                     'created_at' => $adj['created_at'],
+                    'created_at_formatted' => date('Y-m-d H:i:s', strtotime($adj['created_at'])),
+                    'created_date' => date('Y-m-d', strtotime($adj['created_at'])),
+                    'created_time' => date('h:i A', strtotime($adj['created_at'])),
+                    'product_id' => $adj['product_id'],
                     'product_name' => $adj['product_name'] ?? 'Unknown Product',
                     'adjustment_type' => $adj['quantity'] > 0 ? 'increase' : 'decrease',
                     'quantity' => abs($adj['quantity']),
                     'previous_quantity' => $adj['previous_quantity'],
                     'new_quantity' => $adj['new_quantity'],
-                    'reason' => $adj['reference_type'] ?? 'Stock Adjustment',
+                    'reason' => $adj['reference_type'] ?? 'Stock Adjustment',  // Now shows actual reason
+                    'notes' => $adj['notes'] ?? '',
                     'created_by_name' => $adj['created_by_name'] ?? 'System'
                 ];
             }
@@ -594,6 +610,9 @@ class Inventory extends BaseController
 
     /**
      * Adjust Stock
+     */
+    /**
+     * Adjust Stock - FIXED to store actual reason
      */
     public function adjustStock()
     {
@@ -634,17 +653,18 @@ class Inventory extends BaseController
             'updated_by' => session()->get('user_id')
         ]);
 
-        // Log adjustment
+        // Log adjustment with the ACTUAL REASON
         $this->stockMovementModel->logMovement([
             'product_id' => $productId,
             'movement_type' => 'Adjustment',
-            'reference_type' => 'stock_adjustment',
+            'reference_type' => $reason,  // FIXED: Use the actual reason instead of 'stock_adjustment'
             'reference_id' => $productId,
             'quantity' => $adjustmentType === 'increase' ? $quantity : -$quantity,
             'previous_quantity' => $oldQuantity,
             'new_quantity' => $newQuantity,
             'unit_price' => $product['purchase_price'],
             'total_value' => $product['purchase_price'] * $quantity,
+            'notes' => $notes,  // Also store notes if your table has this column
             'created_by' => session()->get('user_id')
         ]);
 
@@ -665,7 +685,8 @@ class Inventory extends BaseController
                 'old_quantity' => $oldQuantity,
                 'new_quantity' => $newQuantity,
                 'adjustment' => $quantity,
-                'type' => $adjustmentType
+                'type' => $adjustmentType,
+                'reason' => $reason
             ]
         ]);
     }
@@ -746,13 +767,13 @@ class Inventory extends BaseController
         return redirect()->back()->with('error', 'Failed to create unit');
     }
 
-    
 
 
 
 
 
-    
+
+
 
     /**
      * Update Unit

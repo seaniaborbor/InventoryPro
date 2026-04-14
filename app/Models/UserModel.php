@@ -26,11 +26,11 @@ class UserModel extends Model
     protected $updatedField  = 'updated_at';
     protected $deletedField  = 'deleted_at';
 
-    // Validation
+    // Validation - FIXED: password is NOT required on update
     protected $validationRules = [
         'username' => 'required|min_length[3]|max_length[100]|is_unique[users.username,id,{id}]',
         'email' => 'required|valid_email|is_unique[users.email,id,{id}]',
-        'password' => 'required|min_length[6]',
+        'password' => 'permit_empty|min_length[6]',  // CHANGED: permit_empty instead of required
         'full_name' => 'required|min_length[3]|max_length[255]',
         'phone' => 'permit_empty|max_length[50]',
         'role_id' => 'required|integer|is_not_unique[roles.id]'
@@ -45,6 +45,9 @@ class UserModel extends Model
             'required' => 'Email is required',
             'valid_email' => 'Please provide a valid email address',
             'is_unique' => 'This email is already registered'
+        ],
+        'password' => [
+            'min_length' => 'Password must be at least 6 characters'
         ]
     ];
 
@@ -53,8 +56,10 @@ class UserModel extends Model
      */
     protected function hashPassword(array $data)
     {
-        if (isset($data['password'])) {
+        if (isset($data['password']) && !empty($data['password'])) {
             $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+        } elseif (isset($data['password']) && empty($data['password'])) {
+            unset($data['password']);
         }
         return $data;
     }
@@ -71,14 +76,19 @@ class UserModel extends Model
     }
 
     /**
-     * Update user with hashed password if changed
+     * Update user with hashed password if changed - FIXED
      */
     public function update($id = null, $data = null): bool
     {
-        if (is_array($data) && isset($data['password']) && !empty($data['password'])) {
-            $data = $this->hashPassword($data);
-        } elseif (is_array($data)) {
-            unset($data['password']);
+        if (is_array($data)) {
+            // If password is provided and not empty, hash it
+            if (isset($data['password']) && !empty($data['password'])) {
+                $data['password'] = password_hash($data['password'], PASSWORD_DEFAULT);
+            } 
+            // If password is empty or not set, remove it from update data
+            elseif (isset($data['password']) && empty($data['password'])) {
+                unset($data['password']);
+            }
         }
         return parent::update($id, $data);
     }

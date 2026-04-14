@@ -27,59 +27,65 @@ class StockMovementModel extends Model
     /**
      * Log stock movement - FIXED VERSION
      */
-    public function logMovement($data)
-    {
-        // Ensure required fields are present
-        if (!isset($data['product_id']) || !isset($data['quantity'])) {
-            log_message('error', 'StockMovementModel::logMovement - Missing required fields');
-            return false;
-        }
-        
-        // Build clean data array with string keys only
-        $insertData = [];
-        
-        // Add each field individually with string keys
-        $insertData['product_id'] = (int) $data['product_id'];
-        $insertData['movement_type'] = isset($data['movement_type']) ? (string) $data['movement_type'] : 'Adjustment';
-        $insertData['reference_type'] = isset($data['reference_type']) ? (string) $data['reference_type'] : 'manual';
-        $insertData['reference_id'] = isset($data['reference_id']) ? (int) $data['reference_id'] : 0;
-        $insertData['quantity'] = (float) $data['quantity'];
-        $insertData['previous_quantity'] = isset($data['previous_quantity']) ? (float) $data['previous_quantity'] : 0;
-        $insertData['new_quantity'] = isset($data['new_quantity']) ? (float) $data['new_quantity'] : 0;
-        $insertData['created_by'] = isset($data['created_by']) ? (int) $data['created_by'] : session()->get('user_id');
-        
-        // Optional fields
-        if (isset($data['unit_price'])) {
-            $insertData['unit_price'] = (float) $data['unit_price'];
-        }
-        if (isset($data['total_value'])) {
-            $insertData['total_value'] = (float) $data['total_value'];
-        }
-        if (isset($data['currency'])) {
-            $insertData['currency'] = (string) $data['currency'];
-        }
-        if (isset($data['exchange_rate'])) {
-            $insertData['exchange_rate'] = (float) $data['exchange_rate'];
-        }
-        
-        log_message('debug', 'StockMovementModel::logMovement - Inserting data: ' . json_encode($insertData));
-        
-        // Use direct database insert to avoid model issues
-        $db = \Config\Database::connect();
-        $builder = $db->table($this->table);
-        
-        try {
-            $result = $builder->insert($insertData);
-            if ($result) {
-                return $db->insertID();
-            }
-            log_message('error', 'StockMovementModel::logMovement - Insert failed');
-            return false;
-        } catch (\Exception $e) {
-            log_message('error', 'StockMovementModel::logMovement - Error: ' . $e->getMessage());
-            return false;
-        }
+  /**
+ * Log stock movement - FIXED to include notes
+ */
+public function logMovement($data)
+{
+    // Ensure required fields are present
+    if (!isset($data['product_id']) || !isset($data['quantity'])) {
+        log_message('error', 'StockMovementModel::logMovement - Missing required fields');
+        return false;
     }
+    
+    // Build clean data array with string keys only
+    $insertData = [];
+    
+    // Add each field individually with string keys
+    $insertData['product_id'] = (int) $data['product_id'];
+    $insertData['movement_type'] = isset($data['movement_type']) ? (string) $data['movement_type'] : 'Adjustment';
+    $insertData['reference_type'] = isset($data['reference_type']) ? (string) $data['reference_type'] : 'manual';
+    $insertData['reference_id'] = isset($data['reference_id']) ? (int) $data['reference_id'] : 0;
+    $insertData['quantity'] = (float) $data['quantity'];
+    $insertData['previous_quantity'] = isset($data['previous_quantity']) ? (float) $data['previous_quantity'] : 0;
+    $insertData['new_quantity'] = isset($data['new_quantity']) ? (float) $data['new_quantity'] : 0;
+    $insertData['created_by'] = isset($data['created_by']) ? (int) $data['created_by'] : session()->get('user_id');
+    
+    // Optional fields
+    if (isset($data['unit_price'])) {
+        $insertData['unit_price'] = (float) $data['unit_price'];
+    }
+    if (isset($data['total_value'])) {
+        $insertData['total_value'] = (float) $data['total_value'];
+    }
+    if (isset($data['currency'])) {
+        $insertData['currency'] = (string) $data['currency'];
+    }
+    if (isset($data['exchange_rate'])) {
+        $insertData['exchange_rate'] = (float) $data['exchange_rate'];
+    }
+    if (isset($data['notes'])) {  // ADD THIS
+        $insertData['notes'] = (string) $data['notes'];
+    }
+    
+    log_message('debug', 'StockMovementModel::logMovement - Inserting data: ' . json_encode($insertData));
+    
+    // Use direct database insert to avoid model issues
+    $db = \Config\Database::connect();
+    $builder = $db->table($this->table);
+    
+    try {
+        $result = $builder->insert($insertData);
+        if ($result) {
+            return $db->insertID();
+        }
+        log_message('error', 'StockMovementModel::logMovement - Insert failed');
+        return false;
+    } catch (\Exception $e) {
+        log_message('error', 'StockMovementModel::logMovement - Error: ' . $e->getMessage());
+        return false;
+    }
+}
 
     /**
      * Get movements by product

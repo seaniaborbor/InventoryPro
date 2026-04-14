@@ -26,9 +26,9 @@ class Email extends BaseConfig
     public string $mailPath = '/usr/sbin/sendmail';
 
     /**
-     * SMTP Server Hostname
+     * SMTP Server Hostname - Gmail SMTP Server
      */
-    public string $SMTPHost = '127.0.0.1';
+    public string $SMTPHost = 'smtp.gmail.com';
 
     /**
      * Which SMTP authentication method to use: login, plain
@@ -36,24 +36,24 @@ class Email extends BaseConfig
     public string $SMTPAuthMethod = 'plain';
 
     /**
-     * SMTP Username
+     * SMTP Username - Your Gmail email address
      */
-    public string $SMTPUser = '';
+    public string $SMTPUser = 'your-email@gmail.com';
 
     /**
-     * SMTP Password
+     * SMTP Password - Your Gmail App Password (16 characters)
      */
-    public string $SMTPPass = '';
+    public string $SMTPPass = 'xxxxxxxxxxxxxxxx';
 
     /**
-     * SMTP Port
+     * SMTP Port - Gmail uses 587 for TLS, 465 for SSL
      */
-    public int $SMTPPort = 1025;
+    public int $SMTPPort = 587;
 
     /**
      * SMTP Timeout (in seconds)
      */
-    public int $SMTPTimeout = 5;
+    public int $SMTPTimeout = 30;
 
     /**
      * Enable persistent SMTP connections
@@ -62,12 +62,9 @@ class Email extends BaseConfig
 
     /**
      * SMTP Encryption.
-     *
-     * @var string '', 'tls' or 'ssl'. 'tls' will issue a STARTTLS command
-     *             to the server. 'ssl' means implicit SSL. Connection on port
-     *             465 should set this to ''.
+     * Use 'tls' for port 587, or 'ssl' for port 465
      */
-    public string $SMTPCrypto = '';
+    public string $SMTPCrypto = 'tls';
 
     /**
      * Enable word-wrap

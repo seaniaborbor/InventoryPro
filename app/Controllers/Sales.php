@@ -498,4 +498,232 @@ class Sales extends BaseController
         $url = base_url('sales/verify/' . $saleId);
         return 'https://chart.googleapis.com/chart?chs=150x150&cht=qr&chl=' . urlencode($url);
     }
+
+    /**
+ * Edit Sale - Show edit form
+ */
+public function edit($id)
+{
+    $sale = $this->saleModel->getSaleWithItems($id);
+    
+    if (!$sale) {
+        return redirect()->to('/sales')->with('error', 'Sale not found');
+    }
+    
+    // Only allow editing if not completed or has restrictions
+    if ($sale['payment_status'] === 'Paid' && $sale['balance_due'] <= 0) {
+        return redirect()->to('/sales/view/' . $id)->with('error', 'Paid sales cannot be edited. Please process a refund or return instead.');
+    }
+    
+    $data = [
+        'title' => 'Edit Sale #' . $sale['invoice_number'],
+        'sale' => $sale,
+        'customers' => $this->customerModel->orderBy('customer_name', 'ASC')->findAll(),
+        'products' => $this->productModel->where('quantity >', 0)->findAll(),
+        'tax_rate' => $this->settingsModel->get('tax_rate', 0),
+        'activePage' => 'sales',
+        'activeSubPage' => 'sales'
+    ];
+    
+    return view('sales/edit', $data);
+}
+
+/**
+ * Update Sale - Process the edit
+ */
+public function update($id)
+{
+    if (!$this->request->isAJAX()) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+    }
+    
+    $sale = $this->saleModel->find($id);
+    if (!$sale) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Sale not found']);
+    }
+    
+    // Check if sale can be edited
+    if ($sale['payment_status'] === 'Paid' && $sale['balance_due'] <= 0) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Paid sales cannot be edited']);
+    }
+    
+    $input = $this->request->getJSON(true);
+    
+    if (empty($input) || empty($input['items'])) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'No items in sale']);
+    }
+    
+    $db = \Config\Database::connect();
+    $db->transStart();
+    
+    try {
+        // Get old items for stock adjustment
+        $oldItems = $this->saleItemModel->where('sale_id', $id)->findAll();
+        
+        // Restore old stock quantities
+        foreach ($oldItems as $oldItem) {
+            $product = $this->productModel->find($oldItem['product_id']);
+            if ($product) {
+                $this->productModel->updateStock($oldItem['product_id'], $oldItem['quantity'], 'add', session()->get('user_id'));
+            }
+        }
+        
+        // Delete old items
+        $this->saleItemModel->where('sale_id', $id)->delete();
+        
+        // Calculate new totals
+        $subtotal = 0;
+        foreach ($input['items'] as $item) {
+            $subtotal += $item['quantity'] * $item['unit_price'] - ($item['discount'] ?? 0);
+        }
+        
+        $tax = $subtotal * (($this->settingsModel->get('tax_rate', 0)) / 100);
+        $discount = $input['discount'] ?? 0;
+        $totalAmount = $subtotal + $tax - $discount;
+        
+        // Calculate payment amounts
+        $paymentStatus = $input['payment_status'] ?? 'Unpaid';
+        $amountPaid = $input['amount_paid'] ?? 0;
+        $balanceDue = $paymentStatus === 'Paid' ? 0 : ($paymentStatus === 'Partial' ? $totalAmount - $amountPaid : $totalAmount);
+        
+        if ($paymentStatus === 'Paid') {
+            $amountPaid = $totalAmount;
+            $balanceDue = 0;
+        } elseif ($paymentStatus === 'Unpaid') {
+            $amountPaid = 0;
+            $balanceDue = $totalAmount;
+        }
+        
+        // Get customer info
+        $customerName = 'Walk-in Customer';
+        $customerPhone = null;
+        $customerEmail = null;
+        
+        if ($input['customer_id']) {
+            $customer = $this->customerModel->find($input['customer_id']);
+            if ($customer) {
+                $customerName = $customer['customer_name'];
+                $customerPhone = $customer['phone'];
+                $customerEmail = $customer['email'];
+            }
+        }
+        
+        // Update sale record
+        $saleData = [
+            'customer_id' => $input['customer_id'] ?? null,
+            'customer_name' => $customerName,
+            'customer_phone' => $customerPhone,
+            'customer_email' => $customerEmail,
+            'sale_date' => $input['sale_date'] ?? date('Y-m-d'),
+            'subtotal' => $subtotal,
+            'tax' => $tax,
+            'discount' => $discount,
+            'total_amount' => $totalAmount,
+            'currency' => $input['currency'] ?? 'LRD',
+            'payment_method' => $input['payment_method'] ?? 'Cash',
+            'payment_status' => $paymentStatus,
+            'amount_paid' => $amountPaid,
+            'balance_due' => $balanceDue,
+            'notes' => $input['notes'] ?? null,
+            'updated_by' => session()->get('user_id')
+        ];
+        
+        $this->saleModel->update($id, $saleData);
+        
+        // Insert new items and deduct stock
+        foreach ($input['items'] as $item) {
+            $product = $this->productModel->find($item['product_id']);
+            
+            if (!$product) {
+                continue;
+            }
+            
+            // Check stock
+            if ($product['quantity'] < $item['quantity']) {
+                $db->transRollback();
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'Insufficient stock for product: ' . $product['product_name']
+                ]);
+            }
+            
+            // Add sale item
+            $itemData = [
+                'sale_id' => $id,
+                'product_id' => $item['product_id'],
+                'quantity' => $item['quantity'],
+                'unit_price' => $item['unit_price'],
+                'discount' => $item['discount'] ?? 0,
+                'total_price' => ($item['quantity'] * $item['unit_price']) - ($item['discount'] ?? 0)
+            ];
+            
+            $this->saleItemModel->insert($itemData);
+            
+            // Update inventory (deduct new quantities)
+            $this->productModel->updateStock($item['product_id'], $item['quantity'], 'subtract', session()->get('user_id'));
+        }
+        
+        $db->transComplete();
+        
+        // Log audit
+        $this->auditLogModel->log(
+            session()->get('user_id'),
+            'sale_update',
+            'Sale',
+            $id,
+            null,
+            ['invoice_number' => $sale['invoice_number'], 'total' => $totalAmount]
+        );
+        
+        return $this->response->setJSON([
+            'status' => 'success',
+            'message' => 'Sale updated successfully',
+            'sale_id' => $id,
+            'invoice_number' => $sale['invoice_number']
+        ]);
+        
+    } catch (\Exception $e) {
+        $db->transRollback();
+        log_message('error', '[Sale Update] ' . $e->getMessage());
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+    }
+}
+
+/**
+ * Get Sale Data for Edit (AJAX)
+ */
+public function getSaleData($id)
+{
+    if (!$this->request->isAJAX()) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Invalid request']);
+    }
+    
+    $sale = $this->saleModel->getSaleWithItems($id);
+    
+    if (!$sale) {
+        return $this->response->setJSON(['status' => 'error', 'message' => 'Sale not found']);
+    }
+    
+    // Format items for the edit form
+    $items = [];
+    foreach ($sale['items'] as $item) {
+        $product = $this->productModel->find($item['product_id']);
+        $items[] = [
+            'product_id' => $item['product_id'],
+            'product_name' => $item['product_name'] ?? $product['product_name'],
+            'quantity' => $item['quantity'],
+            'unit_price' => $item['unit_price'],
+            'discount' => $item['discount'],
+            'stock' => $product['quantity'] ?? 0
+        ];
+    }
+    
+    return $this->response->setJSON([
+        'status' => 'success',
+        'data' => [
+            'sale' => $sale,
+            'items' => $items
+        ]
+    ]);
+}
 }

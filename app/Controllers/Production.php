@@ -12,6 +12,7 @@ use App\Models\StockMovementModel;
 use App\Models\AuditLogModel;
 use App\Models\ProductionCategoryModel;
 use App\Models\CustomerModel;
+use App\Models\SystemSettingModel;  // ← ADD THIS
 
 class Production extends BaseController
 {
@@ -24,8 +25,8 @@ class Production extends BaseController
     protected $stockMovementModel;
     protected $auditLogModel;
     protected $productionCategoryModel;
-
     protected $customerModel;
+    protected $settingsModel;  // ← ADD THIS
 
     public function __construct()
     {
@@ -39,6 +40,7 @@ class Production extends BaseController
         $this->auditLogModel = new AuditLogModel();
         $this->productionCategoryModel = new ProductionCategoryModel();
         $this->customerModel = new CustomerModel();
+        $this->settingsModel = new SystemSettingModel();  // ← ADD THIS
 
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
@@ -266,10 +268,19 @@ class Production extends BaseController
                 ['job_reference' => $jobData['job_reference'], 'total_cost' => $totalCost]
             );
 
+            // In Production.php - modify the store method's success response
             return $this->response->setJSON([
                 'status' => 'success',
                 'message' => 'Production job created successfully',
-                'job_id' => $jobId
+                'job_id' => $jobId,
+                'job' => [  // Add this to return job data for printing
+                    'job_reference' => $jobData['job_reference'],
+                    'job_name' => $jobData['job_name'],
+                    'production_date' => $jobData['production_date'],
+                    'total_material_cost' => $totalCost,
+                    'currency' => $jobData['currency'],
+                    'materials' => $json['materials']
+                ]
             ]);
 
         } catch (\Exception $e) {
@@ -1194,5 +1205,36 @@ class Production extends BaseController
             'status' => 'success',
             'items' => $items
         ]);
+    }
+
+    // Add this method to Production.php controller
+
+    /**
+     * Print Production Job Worksheet / Receipt
+     */
+    public function print($id)
+    {
+        $job = $this->productionJobModel->getJobWithDetails($id);
+
+        if (!$job) {
+            return redirect()->to('/production/jobs')->with('error', 'Production job not found');
+        }
+
+        $businessInfo = [
+            'name' => $this->settingsModel->get('business_name', 'Innovative Graphics'),
+            'address' => $this->settingsModel->get('business_address', 'Broad & Benson Streets, Monrovia, Liberia'),
+            'phone' => $this->settingsModel->get('business_phone', '+231-778-651-747'),
+            'email' => $this->settingsModel->get('business_email', 'info@innovativegraphics.com'),
+            'logo' => $this->settingsModel->get('business_logo', null)
+        ];
+
+        $data = [
+            'title' => 'Production Worksheet #' . $job['job_reference'],
+            'job' => $job,
+            'business' => $businessInfo,
+            'activePage' => 'production'
+        ];
+
+        return view('production/print', $data);
     }
 }

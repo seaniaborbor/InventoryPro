@@ -279,3 +279,192 @@ body {
         padding: 10px 14px;
     }
 }
+
+/* Add after the existing styles in main.php <style> section */
+
+/* ==================== DARK MODE VARIABLES ==================== */
+:root {
+    --bg-primary: #f8f9fa;
+    --bg-secondary: #ffffff;
+    --bg-tertiary: #f0f0f0;
+    --text-primary: #1e1e1e;
+    --text-secondary: #555555;
+    --border-color: #c0c0c0;
+    --card-shadow: 0 0 20px rgba(0,0,0,0.08);
+    --sidebar-bg: #1e293b;
+    --sidebar-text: #ffffff;
+    --navbar-bg: #ffffff;
+    --input-bg: #ffffff;
+    --table-hover: rgba(0, 120, 212, 0.07);
+}
+
+[data-theme="dark"] {
+    --bg-primary: #121212;
+    --bg-secondary: #1e1e1e;
+    --bg-tertiary: #2d2d2d;
+    --text-primary: #e0e0e0;
+    --text-secondary: #a0a0a0;
+    --border-color: #3d3d3d;
+    --card-shadow: 0 0 20px rgba(0,0,0,0.3);
+    --sidebar-bg: #0f0f0f;
+    --sidebar-text: #e0e0e0;
+    --navbar-bg: #1a1a1a;
+    --input-bg: #2d2d2d;
+    --table-hover: rgba(13, 110, 253, 0.15);
+}
+
+/* Apply variables to elements */
+body {
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+#sidebar {
+    background: var(--sidebar-bg);
+}
+
+#sidebar .sidebar-header {
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#sidebar ul li a {
+    color: var(--sidebar-text);
+}
+
+#sidebar ul li a:hover {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+#sidebar ul li.active > a {
+    background: rgba(255, 255, 255, 0.3);
+}
+
+.navbar {
+    background: var(--navbar-bg);
+    border-bottom: 1px solid var(--border-color);
+}
+
+.card {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--card-shadow);
+}
+
+.card-header {
+    background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-tertiary));
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.form-control,
+.form-select {
+    background: var(--input-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+    background: var(--input-bg);
+    color: var(--text-primary);
+}
+
+.form-label {
+    color: var(--text-secondary);
+}
+
+.table {
+    color: var(--text-primary);
+}
+
+.table thead th {
+    background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-tertiary));
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.table td {
+    border-bottom: 1px solid var(--border-color);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--table-hover);
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.modal-header {
+    background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-tertiary));
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+}
+
+.dropdown-menu {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+}
+
+.dropdown-item {
+    color: var(--text-primary);
+}
+
+.dropdown-item:hover {
+    background: var(--table-hover);
+    color: var(--text-primary);
+}
+
+.btn-outline-secondary {
+    color: var(--text-primary);
+    border-color: var(--border-color);
+}
+
+.btn-outline-secondary:hover {
+    background: var(--bg-tertiary);
+    color: var(--text-primary);
+}
+
+.alert-info {
+    background-color: rgba(13, 110, 253, 0.15);
+    border-color: rgba(13, 110, 253, 0.3);
+    color: var(--text-primary);
+}
+
+.alert-warning {
+    background-color: rgba(255, 193, 7, 0.15);
+    border-color: rgba(255, 193, 7, 0.3);
+    color: var(--text-primary);
+}
+
+.alert-success {
+    background-color: rgba(25, 135, 84, 0.15);
+    border-color: rgba(25, 135, 84, 0.3);
+    color: var(--text-primary);
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.15);
+    border-color: rgba(220, 53, 69, 0.3);
+    color: var(--text-primary);
+}
+
+.bg-light {
+    background-color: var(--bg-tertiary) !important;
+}
+
+.text-muted {
+    color: var(--text-secondary) !important;
+}
+
+.table-light {
+    background-color: var(--bg-tertiary);
+}
+
+.table-light th {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+}

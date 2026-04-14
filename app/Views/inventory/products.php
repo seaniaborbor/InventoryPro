@@ -109,10 +109,6 @@
                                         <button class="btn btn-sm btn-primary" onclick="editProduct(<?= $product['id'] ?>)">
                                             <i class="bi bi-pencil"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-warning"
-                                            onclick="adjustStock(<?= $product['id'] ?>, '<?= addslashes($product['product_name']) ?>')">
-                                            <i class="bi bi-arrow-left-right"></i>
-                                        </button>
                                         <button class="btn btn-sm btn-danger"
                                             onclick="deleteProduct(<?= $product['id'] ?>, '<?= addslashes($product['product_name']) ?>')">
                                             <i class="bi bi-trash"></i>
@@ -425,58 +421,13 @@
     }
 
     function editProduct(id) {
-        $.ajax({
-            url: '/inventory/products/edit/' + id,
-            type: 'GET',
-            success: function (response) {
-                if (response.status === 'success') {
-                    $('#productModalTitle').text('Edit Product');
-                    $('#productId').val(response.product.id);
-                    $('#product_name').val(response.product.product_name);
-                    $('#sku').val(response.product.sku);
-                    $('#barcode').val(response.product.barcode);
-                    $('#category_id').val(response.product.category_id);
-                    $('#unit_id').val(response.product.unit_id);
-                    $('#supplier_id').val(response.product.supplier_id);
-                    $('#purchase_price').val(response.product.purchase_price);
-                    $('#selling_price').val(response.product.selling_price);
-                    $('#minimum_stock').val(response.product.minimum_stock);
-                    $('#description').val(response.product.description);
-
-                    if (response.product.product_image) {
-                        $('#productImagePreview').attr('src', response.product.product_image);
-                        $('#currentImage').show();
-                    } else {
-                        $('#currentImage').hide();
-                    }
-
-                    $('#productModal').modal('show');
-                }else{
-                    // console.log(response);
-                }
-            }
-        });
+        window.open('/inventory/products/edit/' + id);
     }
-
     function viewProduct(id) {
         // Implement view product details
         window.open('/inventory/products/view/' + id, '_blank');
     }
-
-    function adjustStock(id, name) {
-        $.ajax({
-            url: '/inventory/products/edit/' + id,
-            type: 'GET',
-            success: function (response) {
-                if (response.status === 'success') {
-                    $('#stockProductId').val(id);
-                    $('#stockProductName').text(name);
-                    $('#current_stock').val(response.product.quantity);
-                    $('#stockModal').modal('show');
-                }
-            }
-        });
-    }
+    
 
     function deleteProduct(id, name) {
         Swal.fire({

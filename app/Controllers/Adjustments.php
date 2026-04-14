@@ -9,6 +9,7 @@ use App\Models\SaleModel;
 use App\Models\ProductionJobModel;
 use App\Models\SaleItemModel;
 use App\Models\AuditLogModel;
+use App\Models\StockMovementModel;
 
 class Adjustments extends BaseController
 {
@@ -19,6 +20,7 @@ class Adjustments extends BaseController
     protected $productionJobModel;
     protected $saleItemModel;
     protected $auditLogModel;
+    protected $stockMovementModel;
 
     public function __construct()
     {
@@ -29,6 +31,7 @@ class Adjustments extends BaseController
         $this->productionJobModel = new ProductionJobModel();
         $this->saleItemModel = new SaleItemModel();
         $this->auditLogModel = new AuditLogModel();
+        $this->stockMovementModel = new StockMovementModel();
 
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
@@ -86,6 +89,22 @@ class Adjustments extends BaseController
     }
 
     /**
+     * Create adjustment form (general/manual adjustment)
+     */
+    public function create()
+    {
+        $data = [
+            'title'      => 'Create Stock Adjustment',
+            'source'     => 'manual',
+            'products'   => $this->productModel->findAll(),
+            'customers'  => $this->customerModel->findAll(),
+            'activePage' => 'adjustments',
+        ];
+        
+        return view('adjustments/create', $data);
+    }
+
+    /**
      * Create adjustment form for a sale (refund/return)
      */
     public function createFromSale($saleId)
@@ -101,7 +120,7 @@ class Adjustments extends BaseController
             'sale'       => $sale,
             'sourceId'   => $sale['id'],
             'products'   => [],
-            'customers'  => [],
+            'customers'  => $this->customerModel->findAll(),
             'activePage' => 'adjustments',
         ];
 
@@ -111,6 +130,7 @@ class Adjustments extends BaseController
                 'id'           => $item['product_id'],
                 'product_name' => $item['product_name'] ?? ($product['product_name'] ?? 'Product #' . $item['product_id']),
                 'purchase_price' => $product['purchase_price'] ?? 0,
+                'quantity'     => $product['quantity'] ?? 0,
             ];
         }
 
@@ -122,7 +142,7 @@ class Adjustments extends BaseController
      */
     public function createFromJob($jobId)
     {
-        $job = $this->productionJobModel->find($jobId);
+        $job = $this->productionJobModel->getJobWithDetails($jobId);
         if (!$job) {
             return redirect()->to('/production/jobs')->with('error', 'Production job not found.');
         }
@@ -138,7 +158,7 @@ class Adjustments extends BaseController
             'job'        => $job,
             'products'   => [],
             'materials'  => $materials,
-            'customers'  => [],
+            'customers'  => $this->customerModel->findAll(),
             'activePage' => 'adjustments',
         ];
 
@@ -148,6 +168,7 @@ class Adjustments extends BaseController
                 'id'              => $mat['product_id'],
                 'product_name'    => $product['product_name'] ?? 'Product #' . $mat['product_id'],
                 'purchase_price'  => $product['purchase_price'] ?? 0,
+                'quantity'        => $product['quantity'] ?? 0,
             ];
         }
 
@@ -156,6 +177,7 @@ class Adjustments extends BaseController
 
     /**
      * Store adjustment (must have a source context — sale or production job)
+     * FIXED: Added validation for total value calculation
      */
     public function store()
     {
@@ -191,6 +213,45 @@ class Adjustments extends BaseController
         $unitCost = $json['unit_cost'] ?? $product['purchase_price'] ?? 0;
         $totalValue = $quantity * $unitCost;
 
+        // ==================== FIX 3: TOTAL VALUE VALIDATION ====================
+        // Check if total value matches calculation
+        $submittedTotal = $json['total_value'] ?? null;
+        if ($submittedTotal !== null) {
+            $calculatedTotal = $quantity * $unitCost;
+            if (abs($calculatedTotal - (float)$submittedTotal) > 0.01) {
+                return $this->response->setJSON([
+                    'status' => 'error', 
+                    'message' => 'Total value calculation mismatch. Please refresh and try again.'
+                ]);
+            }
+        }
+
+        // Validate unit cost is not negative
+        if ($unitCost < 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Unit cost cannot be negative.'
+            ]);
+        }
+
+        // Validate quantity is positive
+        if ($quantity <= 0) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Quantity must be greater than zero.'
+            ]);
+        }
+
+        // Validate event type is valid
+        $validEventTypes = ['Damage', 'Refund', 'Return', 'Theft', 'Other'];
+        if (!in_array($json['event_type'], $validEventTypes)) {
+            return $this->response->setJSON([
+                'status' => 'error',
+                'message' => 'Invalid event type.'
+            ]);
+        }
+        // ==================== END OF FIX 3 ====================
+
         $db = \Config\Database::connect();
         $db->transStart();
 
@@ -205,7 +266,7 @@ class Adjustments extends BaseController
                 'reference'                   => $json['reference'] ?? null,
                 'description'                 => $json['description'] ?? null,
                 'adjust_stock'                => 1,
-                'event_date'                  => date('Y-m-d H:i:s'),
+                'event_date'                  => $json['event_date'] ?? date('Y-m-d H:i:s'),
                 'related_sale_id'             => $saleId,
                 'related_production_job_id'   => $jobId,
                 'customer_id'                 => $json['customer_id'] ?? ($json['sale_customer_id'] ?? null),
@@ -230,7 +291,24 @@ class Adjustments extends BaseController
                         'message' => 'Insufficient stock for: ' . $product['product_name'] . '. Available: ' . number_format($product['quantity'], 2) . ', Required: ' . number_format($quantity, 2),
                     ]);
                 }
+                
+                // Update product stock
                 $this->productModel->updateStock($json['product_id'], $quantity, $stockAction, session()->get('user_id'));
+                
+                // Also log to stock_movements table for consistency with inventory module
+                $this->stockMovementModel->logMovement([
+                    'product_id' => $json['product_id'],
+                    'movement_type' => 'Adjustment',
+                    'reference_type' => 'adjustment_event',
+                    'reference_id' => $eventId,
+                    'quantity' => $stockAction === 'subtract' ? -$quantity : $quantity,
+                    'previous_quantity' => $product['quantity'],
+                    'new_quantity' => $stockAction === 'subtract' ? $product['quantity'] - $quantity : $product['quantity'] + $quantity,
+                    'unit_price' => $unitCost,
+                    'total_value' => $totalValue,
+                    'currency' => $json['currency'] ?? 'LRD',
+                    'created_by' => session()->get('user_id') ?? 1
+                ]);
             }
 
             $db->transComplete();

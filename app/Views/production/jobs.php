@@ -127,15 +127,15 @@
                     <table class="table table-hover align-middle" id="jobsTable">
                         <thead class="table-light">
                             <tr>
-                                <th>Job #</th>
+                                <th>Date</th>
                                 <th>Job Name</th>
                                 <th>Customer</th>
                                 <th>Category</th>
-                                <th>Production Date</th>
                                 <th>Total Cost</th>
+                                <th>Amt Paid</th>
+                                <th>Balance</th>
                                 <th>Pmt Status</th>
                                 <th>Status</th>
-                                <th>Last Edited</th>
                                 <th class="text-center">Actions</th>
                             </tr>
                         </thead>
@@ -152,7 +152,7 @@
                             <?php else: ?>
                                 <?php foreach ($jobs as $job): ?>
                                     <tr>
-                                        <td><strong><?= esc($job['job_reference'] ?? '') ?></strong></td>
+                                        <td><?= !empty($job['production_date']) ? date('M j, Y', strtotime($job['production_date'])) : '—' ?></td>
                                         <td><?= esc($job['job_name'] ?? '') ?></td>
                                         <td>
                                             <?php if (!empty($job['customer_id'])): ?>
@@ -168,10 +168,15 @@
                                                 <span class="text-muted">—</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= !empty($job['production_date']) ? date('M j, Y', strtotime($job['production_date'])) : '—' ?></td>
                                         <td class="text-end fw-medium">
                                             <?= esc($job['currency'] ?? 'LRD') ?>
                                             <?= number_format($job['total_material_cost'] ?? 0, 2) ?>
+                                        </td>
+                                        <td class="text-end fw-medium">
+                                            <?= number_format($job['amount_paid'] ?? 0, 2) ?>
+                                        </td>
+                                        <td class="text-end fw-medium">
+                                            <?= number_format(($job['total_material_cost'] ?? 0) - ($job['amount_paid'] ?? 0), 2) ?>
                                         </td>
                                         <td>
                                             <span class="badge bg-<?=
@@ -189,15 +194,7 @@
                                                 <?= esc($job['status'] ?? 'Draft') ?>
                                             </span>
                                         </td>
-                                        <td>
-                                            <?php if (!empty($job['updated_at'])): ?>
-                                                <small title="<?= esc($job['updated_at_display'] ?? '') ?>">
-                                                    <?= esc($job['updater_name'] ?? 'Unknown') ?>
-                                                </small>
-                                            <?php else: ?>
-                                                <small class="text-muted">Not edited</small>
-                                            <?php endif; ?>
-                                        </td>
+                                   
                                         <td class="text-center">
                                             <div class="btn-group btn-group-sm">
                                                 <a href="<?= base_url('production/view/' . ($job['id'] ?? 0)) ?>"
@@ -291,7 +288,7 @@ $(document).ready(function() {
     if ($.fn.DataTable) {
         $('#jobsTable').DataTable({
             "pageLength": 25,
-            "order": [[4, "desc"]],
+            "order": [[0, "desc"]],
             "language": {
                 "search": "Search jobs:",
                 "lengthMenu": "Show _MENU_ entries"

@@ -9,6 +9,7 @@ use App\Models\ProductModel;
 use App\Models\ProductionJobModel;
 use App\Models\PurchaseModel;
 use App\Models\SaleModel;
+use App\Models\AdjustmentEventModel;
 
 class Dashboard extends BaseController
 {
@@ -19,6 +20,7 @@ class Dashboard extends BaseController
     protected $purchaseModel;
     protected $productionJobModel;
     protected $customerModel;
+    protected $adjustmentModel;
 
     public function __construct()
     {
@@ -29,6 +31,7 @@ class Dashboard extends BaseController
         $this->purchaseModel = new PurchaseModel();
         $this->productionJobModel = new ProductionJobModel();
         $this->customerModel = new CustomerModel();
+        $this->adjustmentModel = new AdjustmentEventModel();
 
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
@@ -76,6 +79,8 @@ class Dashboard extends BaseController
                 'top_products' => $this->getTopProducts($periodData['start_date'], $periodData['end_date']),
                 'recent_transactions' => $this->getRecentTransactions($periodData['start_date'], $periodData['end_date']),
                 'low_stock_items' => $this->getLowStockItemsDetailed(),
+                'net_profit' => $this->getNetProfit($periodData['start_date'], $periodData['end_date']),
+                'production_efficiency' => $this->getProductionEfficiency($periodData['start_date'], $periodData['end_date']),
                 'updated_at' => date('Y-m-d H:i:s'),
             ],
         ];
@@ -150,6 +155,7 @@ class Dashboard extends BaseController
             ['table' => 'expenses', 'field' => 'expense_date'],
             ['table' => 'purchases', 'field' => 'purchase_date'],
             ['table' => 'production_jobs', 'field' => 'production_date'],
+            ['table' => 'adjustment_events', 'field' => 'event_date'],
         ];
 
         foreach ($sources as $source) {
@@ -209,11 +215,14 @@ class Dashboard extends BaseController
 
     private function getFinancialSummary($startDate, $endDate)
     {
+        $adjustmentSummary = $this->adjustmentModel->getSummary($startDate, $endDate);
+        
         return [
             'sales' => $this->getCurrencySummaryForTable('sales', 'sale_date', 'total_amount', $startDate, $endDate, ['deleted_at' => null]),
             'expenses' => $this->getCurrencySummaryForTable('expenses', 'expense_date', 'amount', $startDate, $endDate, ['deleted_at' => null]),
             'purchases' => $this->getCurrencySummaryForTable('purchases', 'purchase_date', 'total_amount', $startDate, $endDate, ['deleted_at' => null, 'status' => 'Received']),
             'production_cost' => $this->getCurrencySummaryForTable('production_jobs', 'production_date', 'total_material_cost', $startDate, $endDate, ['deleted_at' => null, 'status' => 'Completed']),
+            'adjustments' => $adjustmentSummary,
         ];
     }
 
@@ -580,5 +589,134 @@ class Dashboard extends BaseController
             ->where('products.quantity <= products.minimum_stock', null, false)
             ->orderBy('products.quantity', 'ASC')
             ->findAll(10);
+    }
+
+    /**
+     * Calculate Net Profit for the dashboard
+     */
+    private function getNetProfit($startDate, $endDate)
+    {
+        $financial = $this->getFinancialSummary($startDate, $endDate);
+        
+        // Get sales revenue
+        $revenueLRD = $financial['sales']['LRD'];
+        $revenueUSD = $financial['sales']['USD'];
+        
+        // Get refunds from adjustments
+        $adjustments = $financial['adjustments'];
+        $refundsLRD = 0;
+        $refundsUSD = 0;
+        
+        if (isset($adjustments['Refund'])) {
+            $refundsLRD = $adjustments['Refund']['total_value'] ?? 0;
+        }
+        if (isset($adjustments['USD']['Refund'])) {
+            $refundsUSD = $adjustments['USD']['Refund']['total_value'] ?? 0;
+        }
+        
+        // Get COGS (purchases)
+        $cogsLRD = $financial['purchases']['LRD'];
+        $cogsUSD = $financial['purchases']['USD'];
+        
+        // Get operating expenses
+        $expensesLRD = $financial['expenses']['LRD'];
+        $expensesUSD = $financial['expenses']['USD'];
+        
+        // Get damage and theft losses from adjustments
+        $damageLRD = 0;
+        $damageUSD = 0;
+        $theftLRD = 0;
+        $theftUSD = 0;
+        
+        if (isset($adjustments['Damage'])) {
+            $damageLRD = $adjustments['Damage']['total_value'] ?? 0;
+        }
+        if (isset($adjustments['USD']['Damage'])) {
+            $damageUSD = $adjustments['USD']['Damage']['total_value'] ?? 0;
+        }
+        if (isset($adjustments['Theft'])) {
+            $theftLRD = $adjustments['Theft']['total_value'] ?? 0;
+        }
+        if (isset($adjustments['USD']['Theft'])) {
+            $theftUSD = $adjustments['USD']['Theft']['total_value'] ?? 0;
+        }
+        
+        $totalLossesLRD = $damageLRD + $theftLRD;
+        $totalLossesUSD = $damageUSD + $theftUSD;
+        
+        // Calculate net sales (revenue minus refunds)
+        $netSalesLRD = $revenueLRD - $refundsLRD;
+        $netSalesUSD = $revenueUSD - $refundsUSD;
+        
+        // Calculate gross profit (net sales minus COGS)
+        $grossProfitLRD = $netSalesLRD - $cogsLRD;
+        $grossProfitUSD = $netSalesUSD - $cogsUSD;
+        
+        // Calculate net profit (gross profit minus expenses and losses)
+        $netProfitLRD = $grossProfitLRD - $expensesLRD - $totalLossesLRD;
+        $netProfitUSD = $grossProfitUSD - $expensesUSD - $totalLossesUSD;
+        
+        return [
+            'LRD' => [
+                'revenue' => $revenueLRD,
+                'refunds' => $refundsLRD,
+                'net_sales' => $netSalesLRD,
+                'cogs' => $cogsLRD,
+                'gross_profit' => $grossProfitLRD,
+                'expenses' => $expensesLRD,
+                'damage' => $damageLRD,
+                'theft' => $theftLRD,
+                'total_losses' => $totalLossesLRD,
+                'net_profit' => $netProfitLRD,
+            ],
+            'USD' => [
+                'revenue' => $revenueUSD,
+                'refunds' => $refundsUSD,
+                'net_sales' => $netSalesUSD,
+                'cogs' => $cogsUSD,
+                'gross_profit' => $grossProfitUSD,
+                'expenses' => $expensesUSD,
+                'damage' => $damageUSD,
+                'theft' => $theftUSD,
+                'total_losses' => $totalLossesUSD,
+                'net_profit' => $netProfitUSD,
+            ],
+        ];
+    }
+
+    /**
+     * Calculate Production Efficiency (percentage of material not wasted)
+     */
+    private function getProductionEfficiency($startDate, $endDate)
+    {
+        $financial = $this->getFinancialSummary($startDate, $endDate);
+        
+        $materialCostLRD = $financial['production_cost']['LRD'];
+        $materialCostUSD = $financial['production_cost']['USD'];
+        
+        $adjustments = $financial['adjustments'];
+        
+        $damageLRD = 0;
+        $damageUSD = 0;
+        
+        if (isset($adjustments['Damage'])) {
+            $damageLRD = $adjustments['Damage']['total_value'] ?? 0;
+        }
+        if (isset($adjustments['USD']['Damage'])) {
+            $damageUSD = $adjustments['USD']['Damage']['total_value'] ?? 0;
+        }
+        
+        // Efficiency = (Total Material - Damage) / Total Material * 100
+        $efficiencyLRD = $materialCostLRD > 0 ? (($materialCostLRD - $damageLRD) / $materialCostLRD) * 100 : 100;
+        $efficiencyUSD = $materialCostUSD > 0 ? (($materialCostUSD - $damageUSD) / $materialCostUSD) * 100 : 100;
+        
+        return [
+            'LRD' => round($efficiencyLRD, 2),
+            'USD' => round($efficiencyUSD, 2),
+            'material_cost_lrd' => $materialCostLRD,
+            'material_cost_usd' => $materialCostUSD,
+            'damage_lrd' => $damageLRD,
+            'damage_usd' => $damageUSD,
+        ];
     }
 }

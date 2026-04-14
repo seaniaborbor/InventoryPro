@@ -26,7 +26,9 @@ class Reports extends BaseController
     protected $settingsModel;
     protected $customerModel;
     protected $userModel;
-    
+    protected $adjustmentEventModel;
+    protected $db;
+
     public function __construct()
     {
         $this->productModel = new ProductModel();
@@ -40,12 +42,13 @@ class Reports extends BaseController
         $this->customerModel = new CustomerModel();
         $this->userModel = new UserModel();
         $this->adjustmentEventModel = new AdjustmentEventModel();
-        
+        $this->db = \Config\Database::connect();
+
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
         }
     }
-    
+
     /**
      * Inventory Reports
      */
@@ -58,10 +61,10 @@ class Reports extends BaseController
         $data['title'] = 'Inventory Reports';
         $data['activePage'] = 'reports';
         $data['activeSubPage'] = 'inventory';
-        
+
         return view('reports/inventory', $data);
     }
-    
+
     /**
      * Generate Inventory Report View
      */
@@ -73,10 +76,10 @@ class Reports extends BaseController
         $data = $this->getInventoryReportData($categoryId, $stockStatus);
         $data['title'] = 'Inventory Report';
         $data['activePage'] = 'reports';
-        
+
         return view('reports/inventory', $data);
     }
-    
+
     /**
      * Export Inventory Report
      */
@@ -87,22 +90,24 @@ class Reports extends BaseController
         $stockStatus = $this->request->getGet('stock_status');
 
         $data = $this->getInventoryReportData($categoryId, $stockStatus);
-        
+
         if ($type === 'pdf') {
             return $this->exportPDF('reports/inventory_pdf', $data, 'inventory_report.pdf');
         } else {
-            $rows = [[
-                'product_name' => 'Product Name',
-                'sku' => 'SKU',
-                'category_name' => 'Category',
-                'quantity' => 'Current Stock',
-                'minimum_stock' => 'Min Stock',
-                'purchase_price' => 'Purchase Price',
-                'selling_price' => 'Selling Price',
-                'stock_value_purchase' => 'Stock Value (Purchase)',
-                'stock_value_selling' => 'Stock Value (Selling)',
-                'status' => 'Status',
-            ]];
+            $rows = [
+                [
+                    'product_name' => 'Product Name',
+                    'sku' => 'SKU',
+                    'category_name' => 'Category',
+                    'quantity' => 'Current Stock',
+                    'minimum_stock' => 'Min Stock',
+                    'purchase_price' => 'Purchase Price',
+                    'selling_price' => 'Selling Price',
+                    'stock_value_purchase' => 'Stock Value (Purchase)',
+                    'stock_value_selling' => 'Stock Value (Selling)',
+                    'status' => 'Status',
+                ]
+            ];
 
             foreach ($data['products'] as $product) {
                 $rows[] = [
@@ -122,9 +127,12 @@ class Reports extends BaseController
             return $this->exportExcel($rows, 'Inventory Report', 'inventory_report.xlsx');
         }
     }
-    
+
     /**
      * Sales Reports
+     */
+    /**
+     * Sales Reports - FIXED to include adjustments
      */
     public function sales()
     {
@@ -132,31 +140,39 @@ class Reports extends BaseController
         [$startDate, $endDate, $period] = $this->resolveSalesReportPeriod($period);
         $currency = $this->request->getGet('currency');
         $productId = $this->request->getGet('product_id');
-        
-        // Get top products
+
+        // Get sales data
         $topProducts = $this->getTopProducts($startDate, $endDate, $productId, $currency);
-        
-        // Get sales by payment method
         $salesByMethod = $this->getSalesByPaymentMethod($startDate, $endDate, $currency);
-        
-        // Get sales log with customer and seller info
         $salesLog = $this->getSalesLog($startDate, $endDate, $currency, $productId);
-        
-        // Get customer purchase summary
         $customerSummary = $this->getCustomerPurchaseSummary($startDate, $endDate);
-        
-        // Get seller sales summary
         $sellerSummary = $this->getSellerSalesSummary($startDate, $endDate);
-        
-        // Get daily sales for chart
         $dailySales = $this->getDailySales($startDate, $endDate, $currency);
-        
-        // Get totals (separated by currency)
-        $totalSalesLRD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'LRD');
-        $totalSalesUSD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'USD');
+
+        // Get adjustment impact on sales (Refunds and Returns)
+        $adjustmentSummary = $this->getAdjustmentSummary($startDate, $endDate, $currency);
+
+        // Calculate totals by currency
+        $grossSalesLRD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'LRD');
+        $grossSalesUSD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'USD');
+
+        // Get refunds and returns from adjustments
+        $refundsLRD = $adjustmentSummary['LRD']['Refund'] ?? 0;
+        $refundsUSD = $adjustmentSummary['USD']['Refund'] ?? 0;
+        $returnsLRD = $adjustmentSummary['LRD']['Return'] ?? 0;
+        $returnsUSD = $adjustmentSummary['USD']['Return'] ?? 0;
+
+        // Calculate net sales (gross sales minus refunds)
+        $netSalesLRD = $grossSalesLRD - $refundsLRD;
+        $netSalesUSD = $grossSalesUSD - $refundsUSD;
+
+        // Calculate refund percentage
+        $refundPercentageLRD = $grossSalesLRD > 0 ? ($refundsLRD / $grossSalesLRD) * 100 : 0;
+        $refundPercentageUSD = $grossSalesUSD > 0 ? ($refundsUSD / $grossSalesUSD) * 100 : 0;
+
         $totalTax = $this->getSalesAggregate($startDate, $endDate, 'tax', $currency);
         $totalDiscount = $this->getSalesAggregate($startDate, $endDate, 'discount', $currency);
-        
+
         $data = [
             'title' => 'Sales Reports',
             'startDate' => $startDate,
@@ -170,18 +186,27 @@ class Reports extends BaseController
             'customerSummary' => $customerSummary,
             'sellerSummary' => $sellerSummary,
             'dailySales' => $dailySales,
-            'totalSalesLRD' => $totalSalesLRD,
-            'totalSalesUSD' => $totalSalesUSD,
+            // Sales totals
+            'grossSalesLRD' => $grossSalesLRD,
+            'grossSalesUSD' => $grossSalesUSD,
+            'refundsLRD' => $refundsLRD,
+            'refundsUSD' => $refundsUSD,
+            'returnsLRD' => $returnsLRD,
+            'returnsUSD' => $returnsUSD,
+            'netSalesLRD' => $netSalesLRD,
+            'netSalesUSD' => $netSalesUSD,
+            'refundPercentageLRD' => $refundPercentageLRD,
+            'refundPercentageUSD' => $refundPercentageUSD,
             'totalTax' => $totalTax,
             'totalDiscount' => $totalDiscount,
             'products' => $this->productModel->findAll(),
             'activePage' => 'reports',
             'activeSubPage' => 'sales'
         ];
-        
+
         return view('reports/sales', $data);
     }
-    
+
     /**
      * Export Sales Report
      */
@@ -192,11 +217,11 @@ class Reports extends BaseController
         [$startDate, $endDate] = $this->resolveSalesReportPeriod($period);
         $currency = $this->request->getGet('currency');
         $productId = $this->request->getGet('product_id');
-        
+
         $builder = $this->saleModel->select('sales.*, customers.customer_name, users.full_name as seller_name')
-                                   ->join('customers', 'customers.id = sales.customer_id', 'left')
-                                   ->join('users', 'users.id = sales.created_by', 'left')
-                                   ->orderBy('sale_date', 'DESC');
+            ->join('customers', 'customers.id = sales.customer_id', 'left')
+            ->join('users', 'users.id = sales.created_by', 'left')
+            ->orderBy('sale_date', 'DESC');
 
         $this->applySaleDateRange($builder, $startDate, $endDate);
 
@@ -211,7 +236,7 @@ class Reports extends BaseController
         }
 
         $sales = $builder->findAll();
-        
+
         $data = [
             'sales' => $sales,
             'startDate' => $startDate,
@@ -219,14 +244,14 @@ class Reports extends BaseController
             'date' => date('Y-m-d H:i:s'),
             'business_name' => $this->settingsModel->get('business_name', 'Innovative Graphics')
         ];
-        
+
         if ($type === 'pdf') {
             return $this->exportPDF('reports/sales_pdf', $data, 'sales_report.pdf');
         } else {
             return $this->exportExcel($sales, 'Sales Report', 'sales_report.xlsx');
         }
     }
-    
+
     /**
      * Financial Reports (Profit & Loss)
      */
@@ -237,19 +262,15 @@ class Reports extends BaseController
         $currency = $this->request->getGet('currency');
         $categoryId = $this->request->getGet('category');
         $createdBy = $this->request->getGet('created_by');
-        
-        // Revenue
+
         $revenueLRD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'LRD');
         $revenueUSD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'USD');
-        
-        // Cost of Goods Sold (COGS)
+
         $cogs = $this->calculateCOGS($startDate, $endDate);
-        
-        // Expenses
+
         $expensesLRD = $this->expenseModel->getTotalByDateRange($startDate, $endDate, 'LRD');
         $expensesUSD = $this->expenseModel->getTotalByDateRange($startDate, $endDate, 'USD');
-        
-        // Expenses by category
+
         $expensesByCategory = $this->expenseModel->getSummaryByCategory($startDate, $endDate, $currency, $categoryId);
         $expensesByUser = $this->expenseModel->getSummaryByUser($startDate, $endDate, $currency, $categoryId);
         $expenseLog = $this->expenseModel->getDetailedExpenses($startDate, $endDate, $currency, $categoryId, $createdBy);
@@ -259,17 +280,14 @@ class Reports extends BaseController
             'USD' => $this->purchaseModel->getTotalByDateRange($startDate, $endDate, 'USD'),
         ];
 
-        // Adjustments (damage, theft, refunds — stock value losses)
         $adjustmentSummary = $this->getAdjustmentSummary($startDate, $endDate, $currency);
 
-        // Gross Profit
         $grossProfitLRD = $revenueLRD - $cogs['LRD'];
         $grossProfitUSD = $revenueUSD - $cogs['USD'];
-        
-        // Net Profit
+
         $netProfitLRD = $grossProfitLRD - $expensesLRD;
         $netProfitUSD = $grossProfitUSD - $expensesUSD;
-        
+
         $data = [
             'title' => 'Financial Reports',
             'startDate' => $startDate,
@@ -295,10 +313,10 @@ class Reports extends BaseController
             'activePage' => 'reports',
             'activeSubPage' => 'financial'
         ];
-        
+
         return view('reports/financial', $data);
     }
-    
+
     /**
      * Export Financial Report
      */
@@ -310,14 +328,14 @@ class Reports extends BaseController
         $currency = $this->request->getGet('currency');
         $categoryId = $this->request->getGet('category');
         $createdBy = $this->request->getGet('created_by');
-        
+
         $revenueLRD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'LRD');
         $revenueUSD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'USD');
         $cogs = $this->calculateCOGS($startDate, $endDate);
         $expensesLRD = $this->expenseModel->getTotalByDateRange($startDate, $endDate, 'LRD');
         $expensesUSD = $this->expenseModel->getTotalByDateRange($startDate, $endDate, 'USD');
         $expenseLog = $this->expenseModel->getDetailedExpenses($startDate, $endDate, $currency, $categoryId, $createdBy);
-        
+
         $data = [
             'startDate' => $startDate,
             'endDate' => $endDate,
@@ -336,7 +354,7 @@ class Reports extends BaseController
             'date' => date('Y-m-d H:i:s'),
             'business_name' => $this->settingsModel->get('business_name', 'Innovative Graphics')
         ];
-        
+
         if ($type === 'pdf') {
             return $this->exportPDF('reports/financial_pdf', $data, 'financial_report.pdf');
         } else {
@@ -361,9 +379,12 @@ class Reports extends BaseController
             return $this->exportExcel($summary, 'Profit & Loss', 'financial_report.xlsx');
         }
     }
-    
+
     /**
      * Production Reports
+     */
+    /**
+     * Production Reports - FIXED to include damage/waste from adjustments
      */
     public function production()
     {
@@ -374,6 +395,7 @@ class Reports extends BaseController
         $finishedProductId = $this->request->getGet('finished_product_id');
         $createdBy = $this->request->getGet('created_by');
 
+        // Get production data
         $jobs = $this->getProductionJobsDetailed($startDate, $endDate, $status, $currency, $finishedProductId, $createdBy);
         $materialUsage = $this->getProductionMaterialUsageReport($startDate, $endDate, $status, $currency, $finishedProductId, $createdBy);
         $costSummary = $this->getProductionCostSummary($startDate, $endDate, $status, $currency, $finishedProductId, $createdBy);
@@ -381,6 +403,39 @@ class Reports extends BaseController
         $productionByUser = $this->getProductionSummaryByUser($startDate, $endDate, $status, $currency, $finishedProductId);
         $finishedProductSummary = $this->getFinishedProductProductionSummary($startDate, $endDate, $status, $currency, $finishedProductId, $createdBy);
         $productionTrend = $this->getProductionTrend($startDate, $endDate, $currency, $status, $finishedProductId, $createdBy);
+
+        // Get damage/waste from adjustments
+        $adjustmentSummary = $this->getAdjustmentSummary($startDate, $endDate, $currency);
+        $damageLRD = $adjustmentSummary['LRD']['Damage'] ?? 0;
+        $damageUSD = $adjustmentSummary['USD']['Damage'] ?? 0;
+        $theftLRD = $adjustmentSummary['LRD']['Theft'] ?? 0;
+        $theftUSD = $adjustmentSummary['USD']['Theft'] ?? 0;
+
+        // Calculate material costs
+        $totalMaterialCostLRD = $costSummary['total_cost_lrd'];
+        $totalMaterialCostUSD = $costSummary['total_cost_usd'];
+
+        // Calculate net material cost after damage
+        $netMaterialCostLRD = $totalMaterialCostLRD - $damageLRD;
+        $netMaterialCostUSD = $totalMaterialCostUSD - $damageUSD;
+
+        // Calculate damage percentage
+        $damagePercentageLRD = $totalMaterialCostLRD > 0 ? ($damageLRD / $totalMaterialCostLRD) * 100 : 0;
+        $damagePercentageUSD = $totalMaterialCostUSD > 0 ? ($damageUSD / $totalMaterialCostUSD) * 100 : 0;
+
+        // Calculate efficiency (percentage of material that was used successfully)
+        $efficiencyLRD = 100 - $damagePercentageLRD;
+        $efficiencyUSD = 100 - $damagePercentageUSD;
+
+        // Get quantity produced
+        $totalQuantityProduced = 0;
+        foreach ($jobs as $job) {
+            $totalQuantityProduced += (float) ($job['quantity_produced'] ?? 0);
+        }
+
+        // Calculate cost per unit
+        $costPerUnitLRD = $totalQuantityProduced > 0 ? $netMaterialCostLRD / $totalQuantityProduced : 0;
+        $costPerUnitUSD = $totalQuantityProduced > 0 ? $netMaterialCostUSD / $totalQuantityProduced : 0;
 
         $data = [
             'title' => 'Production Reports',
@@ -398,12 +453,29 @@ class Reports extends BaseController
             'productionByUser' => $productionByUser,
             'finishedProductSummary' => $finishedProductSummary,
             'productionTrend' => $productionTrend,
+            // Material cost data
+            'totalMaterialCostLRD' => $totalMaterialCostLRD,
+            'totalMaterialCostUSD' => $totalMaterialCostUSD,
+            'damageLRD' => $damageLRD,
+            'damageUSD' => $damageUSD,
+            'theftLRD' => $theftLRD,
+            'theftUSD' => $theftUSD,
+            'netMaterialCostLRD' => $netMaterialCostLRD,
+            'netMaterialCostUSD' => $netMaterialCostUSD,
+            'damagePercentageLRD' => $damagePercentageLRD,
+            'damagePercentageUSD' => $damagePercentageUSD,
+            'efficiencyLRD' => $efficiencyLRD,
+            'efficiencyUSD' => $efficiencyUSD,
+            // Production metrics
+            'totalQuantityProduced' => $totalQuantityProduced,
+            'costPerUnitLRD' => $costPerUnitLRD,
+            'costPerUnitUSD' => $costPerUnitUSD,
             'products' => $this->productModel->findAll(),
             'users' => $this->userModel->findAll(),
             'activePage' => 'reports',
             'activeSubPage' => 'production'
         ];
-        
+
         return view('reports/production', $data);
     }
 
@@ -455,7 +527,7 @@ class Reports extends BaseController
 
         return $this->exportExcel($rows, 'Production Report', 'production_report.xlsx');
     }
-    
+
     /**
      * Stock Movement Report
      */
@@ -464,15 +536,15 @@ class Reports extends BaseController
         $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
         $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
         $productId = $this->request->getGet('product_id');
-        
+
         $movements = $this->stockMovementModel->getByDateRange($startDate, $endDate);
-        
+
         if ($productId) {
-            $movements = array_filter($movements, function($m) use ($productId) {
+            $movements = array_filter($movements, function ($m) use ($productId) {
                 return $m['product_id'] == $productId;
             });
         }
-        
+
         $data = [
             'title' => 'Stock Movement Report',
             'startDate' => $startDate,
@@ -482,10 +554,10 @@ class Reports extends BaseController
             'selectedProduct' => $productId,
             'activePage' => 'reports'
         ];
-        
+
         return view('reports/stock_movement', $data);
     }
-    
+
     /**
      * Export General Report
      */
@@ -494,8 +566,7 @@ class Reports extends BaseController
         $type = $this->request->getPost('type');
         $reportType = $this->request->getPost('report_type');
         $data = $this->request->getPost('data');
-        
-        // Handle different report types
+
         switch ($reportType) {
             case 'inventory':
                 return $this->exportInventory();
@@ -507,9 +578,9 @@ class Reports extends BaseController
                 return redirect()->back()->with('error', 'Invalid report type');
         }
     }
-    
+
     // ==================== Helper Methods ====================
-    
+
     /**
      * Get Daily Sales
      */
@@ -523,7 +594,7 @@ class Reports extends BaseController
                 return [];
             }
         }
-        
+
         $builder = $db->table('sales');
         $builder->select('sale_date as date, 
                          SUM(CASE WHEN currency = "LRD" THEN total_amount ELSE 0 END) as total_lrd,
@@ -533,14 +604,14 @@ class Reports extends BaseController
                          SUM(total_amount) as total_combined,
                          COUNT(id) as count_combined');
         $this->applySaleDateRange($builder, $startDate, $endDate);
-        
+
         if ($currency) {
             $builder->where('currency', $currency);
         }
-        
+
         $builder->groupBy('sale_date');
         $builder->orderBy('sale_date', 'ASC');
-        
+
         $rows = $builder->get()->getResultArray();
         $resultsByDate = [];
         foreach ($rows as $row) {
@@ -572,23 +643,23 @@ class Reports extends BaseController
             $results[] = $row;
             $currentDate = strtotime('+1 day', $currentDate);
         }
-        
+
         return $results;
     }
-    
+
     /**
      * Get Top Selling Products
      */
     private function getTopProducts($startDate, $endDate, $productId = null, $currency = null, $limit = 10)
     {
         $db = \Config\Database::connect();
-        
+
         $builder = $db->table('sale_items');
         $builder->select('products.id as product_id, products.product_name, products.sku, SUM(sale_items.quantity) as total_quantity, SUM(sale_items.total_price) as total_revenue');
         $builder->join('products', 'products.id = sale_items.product_id');
         $builder->join('sales', 'sales.id = sale_items.sale_id');
         $this->applySaleDateRange($builder, $startDate, $endDate);
-        
+
         if ($productId) {
             $builder->where('sale_items.product_id', $productId);
         }
@@ -596,71 +667,71 @@ class Reports extends BaseController
         if ($currency) {
             $builder->where('sales.currency', $currency);
         }
-        
+
         $builder->groupBy('sale_items.product_id');
         $builder->orderBy('total_quantity', 'DESC');
         $builder->limit($limit);
-        
+
         return $builder->get()->getResultArray();
     }
-    
+
     /**
      * Get Sales by Payment Method
      */
     private function getSalesByPaymentMethod($startDate, $endDate, $currency = null)
     {
         $db = \Config\Database::connect();
-        
+
         $builder = $db->table('sales');
         $builder->select('payment_method, COUNT(*) as count, SUM(total_amount) as total');
         $this->applySaleDateRange($builder, $startDate, $endDate);
-        
+
         if ($currency) {
             $builder->where('currency', $currency);
         }
-        
+
         $builder->groupBy('payment_method');
-        
+
         return $builder->get()->getResultArray();
     }
-    
+
     /**
      * Get Sales Log with Customer and Seller Info
      */
     private function getSalesLog($startDate, $endDate, $currency = null, $productId = null)
     {
         $db = \Config\Database::connect();
-        
+
         $builder = $db->table('sales');
         $builder->select('sales.*, customers.customer_name, users.full_name as seller_name, 
                          (SELECT COUNT(*) FROM sale_items WHERE sale_items.sale_id = sales.id) as items_count');
         $builder->join('customers', 'customers.id = sales.customer_id', 'left');
         $builder->join('users', 'users.id = sales.created_by', 'left');
         $this->applySaleDateRange($builder, $startDate, $endDate);
-        
+
         if ($currency) {
             $builder->where('sales.currency', $currency);
         }
-        
+
         if ($productId) {
             $builder->join('sale_items', 'sale_items.sale_id = sales.id');
             $builder->where('sale_items.product_id', $productId);
             $builder->groupBy('sales.id');
         }
-        
+
         $builder->orderBy('sale_date', 'DESC');
         $builder->orderBy('sales.created_at', 'DESC');
-        
+
         return $builder->get()->getResultArray();
     }
-    
+
     /**
      * Get Customer Purchase Summary
      */
     private function getCustomerPurchaseSummary($startDate, $endDate)
     {
         $db = \Config\Database::connect();
-        
+
         $builder = $db->table('sales');
         $builder->select('customers.customer_name, customers.id as customer_id, 
                          SUM(CASE WHEN sales.currency = "LRD" THEN sales.total_amount ELSE 0 END) as total_lrd,
@@ -672,17 +743,17 @@ class Reports extends BaseController
         $builder->where('sales.customer_id IS NOT NULL');
         $builder->groupBy('sales.customer_id');
         $builder->orderBy('total_combined', 'DESC', false);
-        
+
         return $builder->get()->getResultArray();
     }
-    
+
     /**
      * Get Seller Sales Summary
      */
     private function getSellerSalesSummary($startDate, $endDate)
     {
         $db = \Config\Database::connect();
-        
+
         $builder = $db->table('sales');
         $builder->select('users.full_name, users.id as user_id,
                          SUM(CASE WHEN sales.currency = "LRD" THEN sales.total_amount ELSE 0 END) as total_lrd,
@@ -693,7 +764,7 @@ class Reports extends BaseController
         $this->applySaleDateRange($builder, $startDate, $endDate);
         $builder->groupBy('sales.created_by');
         $builder->orderBy('total_combined', 'DESC', false);
-        
+
         return $builder->get()->getResultArray();
     }
 
@@ -780,23 +851,22 @@ class Reports extends BaseController
             $result['end_date'] ?? null,
         ];
     }
-    
+
     /**
      * Calculate Cost of Goods Sold (COGS)
      */
     private function calculateCOGS($startDate, $endDate)
     {
         $db = \Config\Database::connect();
-        
-        // Get sales with product costs
+
         $builder = $db->table('sale_items');
         $builder->select('sale_items.product_id, sale_items.quantity, products.purchase_price, sales.currency, sales.exchange_rate');
         $builder->join('products', 'products.id = sale_items.product_id');
         $builder->join('sales', 'sales.id = sale_items.sale_id');
         $this->applyOptionalDateRange($builder, 'sale_date', $startDate, $endDate);
-        
+
         $sales = $builder->get()->getResultArray();
-        
+
         $cogs = ['LRD' => 0, 'USD' => 0];
         foreach ($sales as $sale) {
             $cost = (float) $sale['quantity'] * (float) $sale['purchase_price'];
@@ -808,7 +878,7 @@ class Reports extends BaseController
                 $cogs['LRD'] += $cost;
             }
         }
-        
+
         return $cogs;
     }
 
@@ -1052,14 +1122,14 @@ class Reports extends BaseController
             ],
         ];
     }
-    
+
     /**
      * Get Material Usage Summary
      */
     private function getMaterialUsageSummary($startDate, $endDate)
     {
         $db = \Config\Database::connect();
-        
+
         $builder = $db->table('production_materials');
         $builder->select('products.product_name, SUM(production_materials.quantity_used) as total_quantity, SUM(production_materials.total_cost) as total_cost');
         $builder->join('products', 'products.id = production_materials.product_id');
@@ -1068,7 +1138,7 @@ class Reports extends BaseController
         $builder->where('production_date <=', $endDate);
         $builder->groupBy('product_id');
         $builder->orderBy('total_quantity', 'DESC');
-        
+
         return $builder->get()->getResultArray();
     }
 
@@ -1101,14 +1171,14 @@ class Reports extends BaseController
     }
 
     /**
-     * Get detailed production jobs for reporting
+     * Get detailed production jobs for reporting (FIXED - without finished_product_id join)
      */
     private function getProductionJobsDetailed($startDate = null, $endDate = null, $status = null, $currency = null, $finishedProductId = null, $createdBy = null)
     {
         $db = \Config\Database::connect();
+
         $builder = $db->table('production_jobs');
-        $builder->select('production_jobs.*, products.product_name as finished_product_name, creator.full_name as created_by_name, updater.full_name as updated_by_name');
-        $builder->join('products', 'products.id = production_jobs.finished_product_id', 'left');
+        $builder->select('production_jobs.*, creator.full_name as created_by_name, updater.full_name as updated_by_name');
         $builder->join('users as creator', 'creator.id = production_jobs.created_by', 'left');
         $builder->join('users as updater', 'updater.id = production_jobs.updated_by', 'left');
         $builder->where('production_jobs.deleted_at', null);
@@ -1122,26 +1192,23 @@ class Reports extends BaseController
             $builder->where('production_jobs.currency', $currency);
         }
 
-        if ($finishedProductId) {
-            $builder->where('production_jobs.finished_product_id', $finishedProductId);
-        }
-
         if ($createdBy) {
             $builder->where('production_jobs.created_by', $createdBy);
         }
 
         return $builder->orderBy('production_jobs.production_date', 'DESC')
-                       ->orderBy('production_jobs.created_at', 'DESC')
-                       ->get()
-                       ->getResultArray();
+            ->orderBy('production_jobs.created_at', 'DESC')
+            ->get()
+            ->getResultArray();
     }
 
     /**
-     * Get production material usage report
+     * Get production material usage report (FIXED)
      */
     private function getProductionMaterialUsageReport($startDate = null, $endDate = null, $status = null, $currency = null, $finishedProductId = null, $createdBy = null)
     {
         $db = \Config\Database::connect();
+
         $builder = $db->table('production_materials');
         $builder->select('production_materials.product_id, products.product_name, products.sku, production_jobs.currency, SUM(production_materials.quantity_used) as total_quantity, SUM(production_materials.total_cost) as total_cost, COUNT(DISTINCT production_jobs.id) as jobs_count');
         $builder->join('production_jobs', 'production_jobs.id = production_materials.production_job_id');
@@ -1157,10 +1224,6 @@ class Reports extends BaseController
             $builder->where('production_jobs.currency', $currency);
         }
 
-        if ($finishedProductId) {
-            $builder->where('production_jobs.finished_product_id', $finishedProductId);
-        }
-
         if ($createdBy) {
             $builder->where('production_jobs.created_by', $createdBy);
         }
@@ -1172,7 +1235,7 @@ class Reports extends BaseController
     }
 
     /**
-     * Get production cost summary
+     * Get production cost summary (FIXED)
      */
     private function getProductionCostSummary($startDate = null, $endDate = null, $status = null, $currency = null, $finishedProductId = null, $createdBy = null)
     {
@@ -1212,7 +1275,7 @@ class Reports extends BaseController
     }
 
     /**
-     * Get production status summary
+     * Get production status summary (FIXED)
      */
     private function getProductionStatusSummary($startDate = null, $endDate = null, $currency = null, $finishedProductId = null, $createdBy = null)
     {
@@ -1224,10 +1287,6 @@ class Reports extends BaseController
 
         if ($currency) {
             $builder->where('currency', $currency);
-        }
-
-        if ($finishedProductId) {
-            $builder->where('finished_product_id', $finishedProductId);
         }
 
         if ($createdBy) {
@@ -1246,7 +1305,7 @@ class Reports extends BaseController
     }
 
     /**
-     * Get production summary by user
+     * Get production summary by user (FIXED)
      */
     private function getProductionSummaryByUser($startDate = null, $endDate = null, $status = null, $currency = null, $finishedProductId = null)
     {
@@ -1265,10 +1324,6 @@ class Reports extends BaseController
             $builder->where('production_jobs.currency', $currency);
         }
 
-        if ($finishedProductId) {
-            $builder->where('production_jobs.finished_product_id', $finishedProductId);
-        }
-
         $builder->groupBy('production_jobs.created_by, production_jobs.currency');
         $builder->orderBy('job_count', 'DESC');
 
@@ -1276,11 +1331,18 @@ class Reports extends BaseController
     }
 
     /**
-     * Get finished product production summary
+     * Get finished product production summary (FIXED - returns empty array if column doesn't exist)
      */
     private function getFinishedProductProductionSummary($startDate = null, $endDate = null, $status = null, $currency = null, $finishedProductId = null, $createdBy = null)
     {
         $db = \Config\Database::connect();
+
+        // Check if finished_product_id column exists
+        $fields = $db->getFieldNames('production_jobs');
+        if (!in_array('finished_product_id', $fields)) {
+            return []; // Return empty array if column doesn't exist
+        }
+
         $builder = $db->table('production_jobs');
         $builder->select('products.id as product_id, products.product_name, production_jobs.currency, COUNT(*) as job_count, SUM(production_jobs.quantity_produced) as total_quantity, SUM(production_jobs.total_material_cost) as total_cost');
         $builder->join('products', 'products.id = production_jobs.finished_product_id', 'left');
@@ -1311,7 +1373,7 @@ class Reports extends BaseController
     }
 
     /**
-     * Get production trend
+     * Get production trend (FIXED)
      */
     private function getProductionTrend($startDate = null, $endDate = null, $currency = null, $status = null, $finishedProductId = null, $createdBy = null)
     {
@@ -1342,10 +1404,6 @@ class Reports extends BaseController
 
         if ($status) {
             $builder->where('status', $status);
-        }
-
-        if ($finishedProductId) {
-            $builder->where('finished_product_id', $finishedProductId);
         }
 
         if ($createdBy) {
@@ -1524,53 +1582,42 @@ class Reports extends BaseController
 
         return $builder->get()->getResultArray();
     }
-    
+
     /**
      * Export to Excel
      */
     private function exportExcel($data, $title, $filename)
     {
-        // Check if PhpSpreadsheet is available
         if (!class_exists('\PhpOffice\PhpSpreadsheet\Spreadsheet')) {
-            // Fallback: Generate simple CSV
             header('Content-Type: text/csv');
             header('Content-Disposition: attachment;filename="' . str_replace('.xlsx', '.csv', $filename) . '"');
             header('Cache-Control: max-age=0');
-            
+
             $output = fopen('php://output', 'w');
-            
-            // Add title
             fputcsv($output, [$title]);
-            fputcsv($output, []); // Empty row
-            
+            fputcsv($output, []);
+
             if (!empty($data) && is_array($data[0] ?? null)) {
-                // Add headers
                 fputcsv($output, array_keys($data[0]));
-                
-                // Add data rows
                 foreach ($data as $item) {
                     fputcsv($output, $item);
                 }
             } else {
                 fputcsv($output, ['No data available']);
             }
-            
+
             fclose($output);
             exit();
         }
-        
-        // Load PhpSpreadsheet
+
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        
-        // Set title
+
         $sheet->setCellValue('A1', $title);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        
-        // Add data
+
         $row = 3;
         if (!empty($data) && is_array($data[0] ?? null)) {
-            // Add headers
             $col = 'A';
             foreach (array_keys($data[0]) as $key) {
                 $sheet->setCellValue($col . $row, ucwords(str_replace('_', ' ', $key)));
@@ -1578,8 +1625,7 @@ class Reports extends BaseController
                 $col++;
             }
             $row++;
-            
-            // Add data rows
+
             foreach ($data as $item) {
                 $col = 'A';
                 foreach ($item as $value) {
@@ -1591,35 +1637,31 @@ class Reports extends BaseController
         } else {
             $sheet->setCellValue('A3', 'No data available');
         }
-        
-        // Auto-size columns
+
         foreach (range('A', $sheet->getHighestColumn()) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
-        
-        // Set headers for download
+
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
-        
+
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $writer->save('php://output');
         exit();
     }
-    
+
     /**
      * Export to PDF
      */
     private function exportPDF($view, $data, $filename)
     {
-        // Check if Dompdf is available
         if (!class_exists('\Dompdf\Dompdf')) {
-            // Fallback: Return HTML view for printing
             return view($view, $data);
         }
-        
+
         $html = view($view, $data);
-        
+
         $dompdf = new \Dompdf\Dompdf();
         $dompdf->loadHtml($html);
         $dompdf->setPaper('A4', 'portrait');
@@ -1627,7 +1669,7 @@ class Reports extends BaseController
         $dompdf->stream($filename, array('Attachment' => 0));
         exit();
     }
-    
+
     /**
      * Customer Purchase History
      */
@@ -1635,20 +1677,20 @@ class Reports extends BaseController
     {
         $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
         $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
-        
+
         $customer = $this->customerModel->find($customerId);
         if (!$customer) {
             return redirect()->to('/reports/sales')->with('error', 'Customer not found');
         }
-        
+
         $sales = $this->saleModel->select('sales.*, users.full_name as seller_name')
-                                ->join('users', 'users.id = sales.created_by', 'left')
-                                ->where('customer_id', $customerId)
-                                ->where('sale_date >=', $startDate)
-                                ->where('sale_date <=', $endDate)
-                                ->orderBy('sale_date', 'DESC')
-                                ->findAll();
-        
+            ->join('users', 'users.id = sales.created_by', 'left')
+            ->where('customer_id', $customerId)
+            ->where('sale_date >=', $startDate)
+            ->where('sale_date <=', $endDate)
+            ->orderBy('sale_date', 'DESC')
+            ->findAll();
+
         $data = [
             'title' => 'Purchase History - ' . $customer['customer_name'],
             'customer' => $customer,
@@ -1657,10 +1699,10 @@ class Reports extends BaseController
             'endDate' => $endDate,
             'activePage' => 'reports'
         ];
-        
+
         return view('reports/customer_history', $data);
     }
-    
+
     /**
      * Seller Sales History
      */
@@ -1668,20 +1710,20 @@ class Reports extends BaseController
     {
         $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
         $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
-        
+
         $user = $this->userModel->find($userId);
         if (!$user) {
             return redirect()->to('/reports/sales')->with('error', 'User not found');
         }
-        
+
         $sales = $this->saleModel->select('sales.*, customers.customer_name')
-                                ->join('customers', 'customers.id = sales.customer_id', 'left')
-                                ->where('created_by', $userId)
-                                ->where('sale_date >=', $startDate)
-                                ->where('sale_date <=', $endDate)
-                                ->orderBy('sale_date', 'DESC')
-                                ->findAll();
-        
+            ->join('customers', 'customers.id = sales.customer_id', 'left')
+            ->where('created_by', $userId)
+            ->where('sale_date >=', $startDate)
+            ->where('sale_date <=', $endDate)
+            ->orderBy('sale_date', 'DESC')
+            ->findAll();
+
         $data = [
             'title' => 'Sales History - ' . $user['full_name'],
             'user' => $user,
@@ -1690,10 +1732,10 @@ class Reports extends BaseController
             'endDate' => $endDate,
             'activePage' => 'reports'
         ];
-        
+
         return view('reports/seller_history', $data);
     }
-    
+
     /**
      * Product Sales History
      */
@@ -1701,26 +1743,26 @@ class Reports extends BaseController
     {
         $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
         $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
-        
+
         $product = $this->productModel->find($productId);
         if (!$product) {
             return redirect()->to('/reports/sales')->with('error', 'Product not found');
         }
-        
+
         $db = \Config\Database::connect();
         $sales = $db->table('sale_items')
-                   ->select('sale_items.*, sales.sale_date, sales.currency, sales.payment_method, 
+            ->select('sale_items.*, sales.sale_date, sales.currency, sales.payment_method, 
                            customers.customer_name, users.full_name as seller_name')
-                   ->join('sales', 'sales.id = sale_items.sale_id')
-                   ->join('customers', 'customers.id = sales.customer_id', 'left')
-                   ->join('users', 'users.id = sales.created_by', 'left')
-                   ->where('sale_items.product_id', $productId)
-                   ->where('sales.sale_date >=', $startDate)
-                   ->where('sales.sale_date <=', $endDate)
-                   ->orderBy('sales.sale_date', 'DESC')
-                   ->get()
-                   ->getResultArray();
-        
+            ->join('sales', 'sales.id = sale_items.sale_id')
+            ->join('customers', 'customers.id = sales.customer_id', 'left')
+            ->join('users', 'users.id = sales.created_by', 'left')
+            ->where('sale_items.product_id', $productId)
+            ->where('sales.sale_date >=', $startDate)
+            ->where('sales.sale_date <=', $endDate)
+            ->orderBy('sales.sale_date', 'DESC')
+            ->get()
+            ->getResultArray();
+
         $data = [
             'title' => 'Sales History - ' . $product['product_name'],
             'product' => $product,
@@ -1729,16 +1771,21 @@ class Reports extends BaseController
             'endDate' => $endDate,
             'activePage' => 'reports'
         ];
-        
+
         return view('reports/product_history', $data);
     }
 
+    /**
+     * Get adjustment event summary for financial reports (FIXED)
+     */
     /**
      * Get adjustment event summary for financial reports
      */
     private function getAdjustmentSummary($startDate, $endDate, $currency = null)
     {
-        $builder = $this->db->table('adjustment_events')
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('adjustment_events')
             ->select('event_type, COUNT(*) as event_count, SUM(total_value) as total_value, currency')
             ->where('adjustment_events.deleted_at', null);
 
@@ -1753,15 +1800,337 @@ class Reports extends BaseController
 
         $rows = $builder->groupBy(['event_type', 'currency'])->get()->getResultArray();
 
-        $summary = ['LRD' => ['Damage' => 0, 'Refund' => 0, 'Theft' => 0, 'Return' => 0, 'Other' => 0, 'total' => 0],
-                     'USD' => ['Damage' => 0, 'Refund' => 0, 'Theft' => 0, 'Return' => 0, 'Other' => 0, 'total' => 0]];
+        $summary = [
+            'LRD' => ['Damage' => 0, 'Refund' => 0, 'Theft' => 0, 'Return' => 0, 'Other' => 0, 'total' => 0],
+            'USD' => ['Damage' => 0, 'Refund' => 0, 'Theft' => 0, 'Return' => 0, 'Other' => 0, 'total' => 0]
+        ];
 
         foreach ($rows as $row) {
             $cur = $row['currency'] ?? 'LRD';
-            $summary[$cur][$row['event_type']] = $row['total_value'] ?? 0;
-            $summary[$cur]['total'] += $row['total_value'] ?? 0;
+            if (isset($summary[$cur][$row['event_type']])) {
+                $summary[$cur][$row['event_type']] = (float) ($row['total_value'] ?? 0);
+                $summary[$cur]['total'] += (float) ($row['total_value'] ?? 0);
+            }
         }
 
         return $summary;
     }
+
+    /**
+     * Get adjustment impact on sales (returns/refunds)
+     */
+    private function getSalesAdjustmentImpact($startDate, $endDate, $currency = null)
+    {
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('adjustment_events')
+            ->select('event_type, SUM(total_value) as total_value, currency')
+            ->where('deleted_at', null)
+            ->whereIn('event_type', ['Refund', 'Return']);
+
+        if ($startDate && $endDate) {
+            $builder->where('event_date >=', $startDate);
+            $builder->where('event_date <=', $endDate);
+        }
+
+        if ($currency) {
+            $builder->where('currency', $currency);
+        }
+
+        $builder->groupBy(['event_type', 'currency']);
+        $rows = $builder->get()->getResultArray();
+
+        $impact = ['Refund' => 0, 'Return' => 0];
+        foreach ($rows as $row) {
+            $impact[$row['event_type']] = (float) $row['total_value'];
+        }
+
+        return $impact;
+    }
+
+    /**
+     * Get net sales after returns/refunds
+     */
+    private function getNetSales($startDate, $endDate, $currency = null)
+    {
+        $grossSales = $this->saleModel->getTotalByDateRange($startDate, $endDate, $currency);
+        $refunds = $this->getSalesAdjustmentImpact($startDate, $endDate, $currency)['Refund'] ?? 0;
+        $returns = $this->getSalesAdjustmentImpact($startDate, $endDate, $currency)['Return'] ?? 0;
+
+        // Returns add back to stock but don't affect revenue
+        // Refunds reduce revenue
+        $netSales = $grossSales - $refunds;
+
+        return [
+            'gross_sales' => $grossSales,
+            'refunds' => $refunds,
+            'returns_value' => $returns,
+            'net_sales' => $netSales
+        ];
+    }
+
+
+    /**
+     * Get inventory adjustment summary (damage, theft, etc.)
+     */
+    private function getInventoryAdjustmentSummary($startDate, $endDate, $currency = null)
+    {
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('adjustment_events')
+            ->select('event_type, SUM(quantity) as total_quantity, SUM(total_value) as total_value, currency')
+            ->where('deleted_at', null)
+            ->whereIn('event_type', ['Damage', 'Theft']);
+
+        if ($startDate && $endDate) {
+            $builder->where('event_date >=', $startDate);
+            $builder->where('event_date <=', $endDate);
+        }
+
+        if ($currency) {
+            $builder->where('currency', $currency);
+        }
+
+        $builder->groupBy(['event_type', 'currency']);
+        $rows = $builder->get()->getResultArray();
+
+        $summary = [
+            'Damage' => ['quantity' => 0, 'value' => 0],
+            'Theft' => ['quantity' => 0, 'value' => 0]
+        ];
+
+        foreach ($rows as $row) {
+            $summary[$row['event_type']] = [
+                'quantity' => (float) $row['total_quantity'],
+                'value' => (float) $row['total_value']
+            ];
+        }
+
+        return $summary;
+    }
+
+    /**
+     * Adjustments Report - Show all adjustments by category
+     */
+    public function adjustments()
+    {
+        $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
+        $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
+        $eventType = $this->request->getGet('event_type');
+        $currency = $this->request->getGet('currency');
+
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('adjustment_events')
+            ->select('adjustment_events.*, products.product_name, customers.customer_name, 
+                  sales.invoice_number, production_jobs.job_reference')
+            ->join('products', 'products.id = adjustment_events.product_id', 'left')
+            ->join('customers', 'customers.id = adjustment_events.customer_id', 'left')
+            ->join('sales', 'sales.id = adjustment_events.related_sale_id', 'left')
+            ->join('production_jobs', 'production_jobs.id = adjustment_events.related_production_job_id', 'left')
+            ->where('adjustment_events.deleted_at', null)
+            ->where('adjustment_events.event_date >=', $startDate)
+            ->where('adjustment_events.event_date <=', $endDate);
+
+        if ($eventType) {
+            $builder->where('adjustment_events.event_type', $eventType);
+        }
+
+        if ($currency) {
+            $builder->where('adjustment_events.currency', $currency);
+        }
+
+        $adjustments = $builder->orderBy('adjustment_events.event_date', 'DESC')->get()->getResultArray();
+
+        // Get summary by event type
+        $summaryByType = $this->getAdjustmentSummary($startDate, $endDate, $currency);
+
+        $data = [
+            'title' => 'Adjustments Report',
+            'adjustments' => $adjustments,
+            'summaryByType' => $summaryByType,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'selectedEventType' => $eventType,
+            'selectedCurrency' => $currency,
+            'eventTypes' => ['Damage', 'Refund', 'Return', 'Theft', 'Other'],
+            'activePage' => 'reports',
+            'activeSubPage' => 'adjustments'
+        ];
+
+        return view('reports/adjustments', $data);
+    }
+
+
+    /**
+     * Export Adjustments Report to Excel
+     */
+    public function exportAdjustments()
+    {
+        $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
+        $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
+        $eventType = $this->request->getGet('event_type');
+        $currency = $this->request->getGet('currency');
+
+        $db = \Config\Database::connect();
+
+        $builder = $db->table('adjustment_events')
+            ->select('adjustment_events.*, products.product_name, customers.customer_name, 
+                  sales.invoice_number, production_jobs.job_reference')
+            ->join('products', 'products.id = adjustment_events.product_id', 'left')
+            ->join('customers', 'customers.id = adjustment_events.customer_id', 'left')
+            ->join('sales', 'sales.id = adjustment_events.related_sale_id', 'left')
+            ->join('production_jobs', 'production_jobs.id = adjustment_events.related_production_job_id', 'left')
+            ->where('adjustment_events.deleted_at', null)
+            ->where('adjustment_events.event_date >=', $startDate)
+            ->where('adjustment_events.event_date <=', $endDate);
+
+        if ($eventType) {
+            $builder->where('adjustment_events.event_type', $eventType);
+        }
+
+        if ($currency) {
+            $builder->where('adjustment_events.currency', $currency);
+        }
+
+        $adjustments = $builder->orderBy('adjustment_events.event_date', 'DESC')->get()->getResultArray();
+
+        // Prepare data for export
+        $exportData = [];
+        foreach ($adjustments as $adj) {
+            $exportData[] = [
+                'Date' => date('Y-m-d', strtotime($adj['event_date'])),
+                'Product' => $adj['product_name'] ?? 'Unknown',
+                'Event Type' => $adj['event_type'],
+                'Quantity' => $adj['quantity'],
+                'Unit Cost' => $adj['unit_cost'],
+                'Total Value' => $adj['total_value'],
+                'Currency' => $adj['currency'],
+                'Reference' => $adj['reference'] ?? '-',
+                'Customer' => $adj['customer_name'] ?? '-',
+                'Source' => $adj['invoice_number'] ?? ($adj['job_reference'] ?? '-'),
+                'Description' => $adj['description'] ?? '-',
+            ];
+        }
+
+        return $this->exportExcel($exportData, 'Adjustments Report', 'adjustments_report_' . date('Y-m-d') . '.xlsx');
+    }
+
+    /**
+     * Profit & Loss Report (Simplified)
+     */
+    public function profitLoss()
+    {
+        $period = $this->request->getGet('period');
+        [$startDate, $endDate, $period] = $this->resolveFinancialReportPeriod($period);
+        $currency = $this->request->getGet('currency');
+
+        // Revenue
+        $revenueLRD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'LRD');
+        $revenueUSD = $this->saleModel->getTotalByDateRange($startDate, $endDate, 'USD');
+
+        // Returns & Refunds (Adjustments that affect revenue)
+        $adjustmentSummary = $this->getAdjustmentSummary($startDate, $endDate, $currency);
+
+        // Cost of Goods Sold
+        $cogs = $this->calculateCOGS($startDate, $endDate);
+
+        // Expenses
+        $expensesLRD = $this->expenseModel->getTotalByDateRange($startDate, $endDate, 'LRD');
+        $expensesUSD = $this->expenseModel->getTotalByDateRange($startDate, $endDate, 'USD');
+
+        // Calculate Net Profit
+        $netRevenueLRD = $revenueLRD - ($adjustmentSummary['LRD']['Refund'] ?? 0);
+        $netRevenueUSD = $revenueUSD - ($adjustmentSummary['USD']['Refund'] ?? 0);
+
+        $grossProfitLRD = $netRevenueLRD - $cogs['LRD'];
+        $grossProfitUSD = $netRevenueUSD - $cogs['USD'];
+
+        $netProfitLRD = $grossProfitLRD - $expensesLRD - ($adjustmentSummary['LRD']['Damage'] ?? 0) - ($adjustmentSummary['LRD']['Theft'] ?? 0);
+        $netProfitUSD = $grossProfitUSD - $expensesUSD - ($adjustmentSummary['USD']['Damage'] ?? 0) - ($adjustmentSummary['USD']['Theft'] ?? 0);
+
+        $data = [
+            'title' => 'Profit & Loss Statement',
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'selectedPeriod' => $period,
+            'selectedCurrency' => $currency,
+            'revenue' => ['LRD' => $revenueLRD, 'USD' => $revenueUSD],
+            'refunds' => ['LRD' => $adjustmentSummary['LRD']['Refund'] ?? 0, 'USD' => $adjustmentSummary['USD']['Refund'] ?? 0],
+            'returns' => ['LRD' => $adjustmentSummary['LRD']['Return'] ?? 0, 'USD' => $adjustmentSummary['USD']['Return'] ?? 0],
+            'net_revenue' => ['LRD' => $netRevenueLRD, 'USD' => $netRevenueUSD],
+            'cogs' => $cogs,
+            'gross_profit' => ['LRD' => $grossProfitLRD, 'USD' => $grossProfitUSD],
+            'expenses' => ['LRD' => $expensesLRD, 'USD' => $expensesUSD],
+            'damage_loss' => ['LRD' => $adjustmentSummary['LRD']['Damage'] ?? 0, 'USD' => $adjustmentSummary['USD']['Damage'] ?? 0],
+            'theft_loss' => ['LRD' => $adjustmentSummary['LRD']['Theft'] ?? 0, 'USD' => $adjustmentSummary['USD']['Theft'] ?? 0],
+            'net_profit' => ['LRD' => $netProfitLRD, 'USD' => $netProfitUSD],
+            'activePage' => 'reports',
+            'activeSubPage' => 'profit-loss'
+        ];
+
+        return view('reports/profit_loss', $data);
+    }
+
+
+    /**
+     * Reports Summary Dashboard - Shows how all reports correspond
+     */
+    public function summary()
+    {
+        $startDate = $this->request->getGet('start_date') ?: date('Y-m-01');
+        $endDate = $this->request->getGet('end_date') ?: date('Y-m-t');
+        $currency = $this->request->getGet('currency') ?: 'LRD';
+
+        // Sales data
+        $grossSales = $this->saleModel->getTotalByDateRange($startDate, $endDate, $currency);
+
+        // Adjustment data
+        $adjustmentSummary = $this->getAdjustmentSummary($startDate, $endDate, $currency);
+        $refunds = $adjustmentSummary[$currency]['Refund'] ?? 0;
+        $returns = $adjustmentSummary[$currency]['Return'] ?? 0;
+        $damage = $adjustmentSummary[$currency]['Damage'] ?? 0;
+        $theft = $adjustmentSummary[$currency]['Theft'] ?? 0;
+
+        // Production data
+        $productionCost = $this->productionJobModel
+            ->selectSum('total_material_cost')
+            ->where('production_date >=', $startDate)
+            ->where('production_date <=', $endDate)
+            ->where('currency', $currency)
+            ->where('status', 'Completed')
+            ->first();
+        $totalProductionCost = $productionCost['total_material_cost'] ?? 0;
+
+        // Expense data
+        $expenses = $this->expenseModel->getTotalByDateRange($startDate, $endDate, $currency);
+
+        // Net calculations
+        $netSales = $grossSales - $refunds;
+        $totalLosses = $damage + $theft;
+        $netProfit = $netSales - $totalProductionCost - $expenses - $totalLosses;
+
+        $data = [
+            'title' => 'Reports Summary',
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'currency' => $currency,
+            'grossSales' => $grossSales,
+            'refunds' => $refunds,
+            'returns' => $returns,
+            'netSales' => $netSales,
+            'productionCost' => $totalProductionCost,
+            'damage' => $damage,
+            'theft' => $theft,
+            'totalLosses' => $totalLosses,
+            'expenses' => $expenses,
+            'netProfit' => $netProfit,
+            'activePage' => 'reports',
+            'activeSubPage' => 'summary'
+        ];
+
+        return view('reports/summary', $data);
+    }
+
+
 }

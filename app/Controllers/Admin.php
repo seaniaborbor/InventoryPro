@@ -17,12 +17,12 @@ class Admin extends BaseController
     protected $auditLogModel;
     protected $settingsModel;
     protected $backupLogModel;
-    
+
     public function __construct()
     {
         // Load permission helper first
         helper('permission');
-        
+
         $this->userModel = new UserModel();
         $this->roleModel = new RoleModel();
         $this->permissionModel = new PermissionModel();
@@ -30,20 +30,20 @@ class Admin extends BaseController
         $this->settingsModel = new SystemSettingModel();
         $this->backupLogModel = new BackupLogModel();
         $this->permissionModel->syncSystemPermissions();
-        
+
         // Check authentication and administration access
         if (!session()->get('isLoggedIn')) {
             return redirect()->to('/auth/login');
         }
-        
+
         if (!can_access_module('admin')) {
             return redirect()->to('/dashboard')->with('error', 'Access denied. Administration privileges required.');
         }
     }
-    
+
     // ... rest of the controller methods
 
-    
+
     /**
      * User management index
      */
@@ -55,7 +55,7 @@ class Admin extends BaseController
             'roles' => $this->roleModel->findAll(),
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/users', $data);
     }
 
@@ -83,7 +83,7 @@ class Admin extends BaseController
 
         return view('admin/user_profile', $data);
     }
-    
+
     /**
      * Create user
      */
@@ -97,7 +97,7 @@ class Admin extends BaseController
             'phone' => 'permit_empty|max_length[50]',
             'role_id' => 'required|is_not_unique[roles.id]'
         ];
-        
+
         if (!$this->validate($rules)) {
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON([
@@ -107,7 +107,7 @@ class Admin extends BaseController
             }
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
-        
+
         $data = [
             'username' => $this->request->getPost('username'),
             'email' => $this->request->getPost('email'),
@@ -118,10 +118,10 @@ class Admin extends BaseController
             'is_active' => $this->request->getPost('is_active') ? 1 : 0,
             'created_by' => session()->get('user_id')
         ];
-        
+
         if ($this->userModel->insert($data)) {
             $userId = $this->userModel->getInsertID();
-            
+
             // Log audit
             $this->auditLogModel->log(
                 session()->get('user_id'),
@@ -131,114 +131,228 @@ class Admin extends BaseController
                 null,
                 $data
             );
-            
+
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON(['status' => 'success', 'message' => 'User created successfully']);
             }
             return redirect()->to('/admin/users')->with('success', 'User created successfully');
         }
-        
+
         if ($this->request->isAJAX()) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to create user']);
         }
         return redirect()->back()->with('error', 'Failed to create user');
     }
-    
+
     /**
      * Edit user
      */
     public function editUser($id)
     {
         $user = $this->userModel->find($id);
-        
+
         if (!$user) {
             return redirect()->to('/admin/users')->with('error', 'User not found');
         }
-        
+
         $data = [
             'title' => 'Edit User',
             'user' => $user,
             'roles' => $this->roleModel->findAll(),
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/edit_user', $data);
     }
-    
+
     /**
-     * Update user
+     * Update user - COMPLETE FIXED VERSION
      */
     public function updateUser($id)
     {
+        // Check if AJAX request
+        $isAjax = $this->request->isAJAX();
+
+        // Find the user
         $user = $this->userModel->find($id);
-        
+
         if (!$user) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'User not found']);
-        }
-        
-        $rules = [
-            'username' => 'required|min_length[3]|max_length[100]|is_unique[users.username,id,' . $id . ']',
-            'email' => 'required|valid_email|is_unique[users.email,id,' . $id . ']',
-            'full_name' => 'required|min_length[3]|max_length[255]',
-            'phone' => 'permit_empty|max_length[50]',
-            'role_id' => 'required|is_not_unique[roles.id]'
-        ];
-        
-        if (!$this->validate($rules)) {
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON([
-                    'status' => 'error',
-                    'errors' => $this->validator->getErrors()
-                ]);
+            $message = 'User not found';
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => $message]);
             }
-            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            return redirect()->back()->with('error', $message);
         }
-        
+
+        // Get POST data
+        $postData = $this->request->getPost();
+
+        // If no POST data, try getting JSON input
+        if (empty($postData) && $isAjax) {
+            $postData = $this->request->getJSON(true);
+        }
+
+        $isSelfEdit = (session()->get('user_id') == $id);
+        $password = $postData['password'] ?? '';
+        $oldPassword = $postData['old_password'] ?? '';
+
+        // ========== PASSWORD VALIDATION FOR SELF EDIT ==========
+        if ($isSelfEdit && !empty($password)) {
+            if (empty($oldPassword)) {
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => 'Current password is required to change your password']);
+                }
+                return redirect()->back()->with('error', 'Current password is required to change your password');
+            }
+
+            // Verify old password
+            if (!password_verify($oldPassword, $user['password'])) {
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => 'Current password is incorrect']);
+                }
+                return redirect()->back()->with('error', 'Current password is incorrect');
+            }
+        }
+
+        // ========== CHECK IF USERNAME OR EMAIL CHANGED ==========
+        $usernameChanged = (trim($postData['username']) !== $user['username']);
+        $emailChanged = (trim($postData['email']) !== $user['email']);
+
+        // ========== VALIDATE UNIQUE USERNAME (only if changed) ==========
+        if ($usernameChanged) {
+            $existingUser = $this->userModel->where('username', trim($postData['username']))->first();
+            if ($existingUser && $existingUser['id'] != $id) {
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => 'This username already exists']);
+                }
+                return redirect()->back()->with('error', 'This username already exists')->withInput();
+            }
+        }
+
+        // ========== VALIDATE UNIQUE EMAIL (only if changed) ==========
+        if ($emailChanged) {
+            $existingUser = $this->userModel->where('email', trim($postData['email']))->first();
+            if ($existingUser && $existingUser['id'] != $id) {
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => 'This email is already registered']);
+                }
+                return redirect()->back()->with('error', 'This email is already registered')->withInput();
+            }
+        }
+
+        // ========== VALIDATE REQUIRED FIELDS ==========
+        $errors = [];
+
+        if (empty($postData['full_name'])) {
+            $errors['full_name'] = 'Full name is required';
+        }
+
+        if (empty($postData['username'])) {
+            $errors['username'] = 'Username is required';
+        }
+
+        if (empty($postData['email'])) {
+            $errors['email'] = 'Email is required';
+        } elseif (!filter_var($postData['email'], FILTER_VALIDATE_EMAIL)) {
+            $errors['email'] = 'Please provide a valid email address';
+        }
+
+        if (empty($postData['role_id'])) {
+            $errors['role_id'] = 'Role is required';
+        }
+
+        if (!empty($password) && strlen($password) < 6) {
+            $errors['password'] = 'Password must be at least 6 characters';
+        }
+
+        if (!empty($errors)) {
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Validation failed', 'errors' => $errors]);
+            }
+            return redirect()->back()->withInput()->with('errors', $errors);
+        }
+
+        // ========== PREPARE UPDATE DATA ==========
         $data = [
-            'username' => $this->request->getPost('username'),
-            'email' => $this->request->getPost('email'),
-            'full_name' => $this->request->getPost('full_name'),
-            'phone' => $this->request->getPost('phone'),
-            'role_id' => $this->request->getPost('role_id'),
-            'is_active' => $this->request->getPost('is_active') ? 1 : 0,
+            'full_name' => trim($postData['full_name']),
+            'phone' => trim($postData['phone'] ?? ''),
+            'role_id' => (int) $postData['role_id'],
+            'is_active' => isset($postData['is_active']) ? (int) $postData['is_active'] : 1,
             'updated_by' => session()->get('user_id')
         ];
-        
-        // Update password if provided
-        $password = $this->request->getPost('password');
-        if (!empty($password)) {
-            if (strlen($password) < 6) {
-                return $this->response->setJSON(['status' => 'error', 'message' => 'Password must be at least 6 characters']);
-            }
-            $data['password'] = $password;
+
+        // Only update username if changed
+        if ($usernameChanged) {
+            $data['username'] = trim($postData['username']);
         }
-        
+
+        // Only update email if changed
+        if ($emailChanged) {
+            $data['email'] = trim($postData['email']);
+        }
+
+        // Only update password if provided
+        if (!empty($password)) {
+            $data['password'] = $password;
+            // Clear remember tokens when password changes
+            $data['remember_token'] = null;
+            $data['remember_token_expiry'] = null;
+        }
+
+        // ========== PREVENT SELF ROLE CHANGE ==========
+        if ($isSelfEdit && isset($data['role_id']) && $data['role_id'] != $user['role_id']) {
+            if ($isAjax) {
+                return $this->response->setJSON([
+                    'status' => 'error',
+                    'message' => 'You cannot change your own role. Contact another administrator.'
+                ]);
+            }
+            return redirect()->back()->with('error', 'You cannot change your own role.');
+        }
+
         // Get old data for audit
         $oldData = $user;
-        
-        if ($this->userModel->update($id, $data)) {
-            // Log audit
-            $this->auditLogModel->log(
-                session()->get('user_id'),
-                'user_update',
-                'User',
-                $id,
-                $oldData,
-                $data
-            );
-            
-            if ($this->request->isAJAX()) {
-                return $this->response->setJSON(['status' => 'success', 'message' => 'User updated successfully']);
+
+        // ========== ATTEMPT UPDATE ==========
+        try {
+            $updated = $this->userModel->update($id, $data);
+
+            if ($updated) {
+                // Log audit
+                $this->auditLogModel->log(
+                    session()->get('user_id'),
+                    'user_update',
+                    'User',
+                    $id,
+                    $oldData,
+                    $data
+                );
+
+                $message = 'User updated successfully';
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'success', 'message' => $message]);
+                }
+                return redirect()->to('/admin/users')->with('success', $message);
+            } else {
+                $modelErrors = $this->userModel->errors();
+                log_message('error', 'UserModel update errors: ' . json_encode($modelErrors));
+                $errorMsg = !empty($modelErrors) ? implode(', ', $modelErrors) : 'Failed to update user';
+
+                if ($isAjax) {
+                    return $this->response->setJSON(['status' => 'error', 'message' => $errorMsg]);
+                }
+                return redirect()->back()->with('error', $errorMsg)->withInput();
             }
-            return redirect()->to('/admin/users')->with('success', 'User updated successfully');
+        } catch (\Exception $e) {
+            log_message('error', 'Update User - Exception: ' . $e->getMessage());
+
+            if ($isAjax) {
+                return $this->response->setJSON(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+            }
+            return redirect()->back()->with('error', 'Database error: ' . $e->getMessage());
         }
-        
-        if ($this->request->isAJAX()) {
-            return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to update user']);
-        }
-        return redirect()->back()->with('error', 'Failed to update user');
     }
-    
+
     /**
      * Delete user
      */
@@ -248,15 +362,15 @@ class Admin extends BaseController
         if ($id == session()->get('user_id')) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'You cannot delete your own account']);
         }
-        
+
         $user = $this->userModel->find($id);
-        
+
         if (!$user) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'User not found']);
         }
-        
+
         $oldData = $user;
-        
+
         if ($this->userModel->delete($id)) {
             // Log audit
             $this->auditLogModel->log(
@@ -266,13 +380,13 @@ class Admin extends BaseController
                 $id,
                 $oldData
             );
-            
+
             return $this->response->setJSON(['status' => 'success', 'message' => 'User deleted successfully']);
         }
-        
+
         return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to delete user']);
     }
-    
+
     /**
      * Role management
      */
@@ -283,7 +397,7 @@ class Admin extends BaseController
             'roles' => $this->roleModel->getAllRolesWithPermissionCount(),
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/roles', $data);
     }
 
@@ -306,37 +420,7 @@ class Admin extends BaseController
         return view('admin/permission_matrix', $data);
     }
 
-    /**
-     * Save permission matrix.
-     */
-    public function updatePermissionMatrix()
-    {
-        $roles = $this->roleModel->findAll();
-        $postedMatrix = $this->request->getPost('permissions') ?? [];
-        $allPermissions = $this->permissionModel->findAll();
-        $allPermissionIds = array_column($allPermissions, 'id');
 
-        foreach ($roles as $role) {
-            if (strcasecmp($role['role_name'], 'Admin') === 0) {
-                $this->permissionModel->assignToRole($role['id'], $allPermissionIds);
-                continue;
-            }
-
-            $rolePermissionIds = array_map('intval', $postedMatrix[$role['id']] ?? []);
-            $this->permissionModel->assignToRole($role['id'], $rolePermissionIds);
-        }
-
-        $this->auditLogModel->log(
-            session()->get('user_id'),
-            'permission_matrix_update',
-            'RolePermission',
-            null,
-            null,
-            ['roles_updated' => array_column($roles, 'role_name')]
-        );
-
-        return redirect()->to('/admin/permissions')->with('success', 'Role permissions updated successfully');
-    }
 
     /**
      * Edit role permissions
@@ -344,11 +428,11 @@ class Admin extends BaseController
     public function editRolePermissions($id)
     {
         $role = $this->roleModel->find($id);
-        
+
         if (!$role) {
             return redirect()->to('/admin/roles')->with('error', 'Role not found');
         }
-        
+
         $roles = [$role];
         $matrixData = $this->permissionModel->getRolePermissionMatrix($roles);
         $rolePermissionIds = array_keys($matrixData['rolePermissionMap'][$id] ?? []);
@@ -360,10 +444,10 @@ class Admin extends BaseController
             'rolePermissionIds' => $rolePermissionIds,
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/role_permissions', $data);
     }
-    
+
     /**
      * Update role permissions
      */
@@ -379,7 +463,7 @@ class Admin extends BaseController
         if (strcasecmp($role['role_name'], 'Admin') === 0) {
             $permissionIds = array_column($this->permissionModel->findAll(), 'id');
         }
-        
+
         if ($this->permissionModel->assignToRole($id, $permissionIds)) {
             // Log audit
             $this->auditLogModel->log(
@@ -390,51 +474,51 @@ class Admin extends BaseController
                 null,
                 ['permission_ids' => $permissionIds]
             );
-            
+
             if ($this->request->isAJAX()) {
                 return $this->response->setJSON(['status' => 'success', 'message' => 'Role permissions updated successfully']);
             }
             return redirect()->to('/admin/roles')->with('success', 'Role permissions updated successfully');
         }
-        
+
         if ($this->request->isAJAX()) {
             return $this->response->setJSON(['status' => 'error', 'message' => 'Failed to update role permissions']);
         }
         return redirect()->back()->with('error', 'Failed to update role permissions');
     }
-    
+
     /**
      * System settings
      */
     public function settings()
     {
         $settingsModel = new \App\Models\SystemSettingModel();
-        
+
         $data = [
             'title' => 'System Settings',
             'settings' => $settingsModel->getAllSettings(),
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/settings', $data);
     }
-    
+
     /**
      * Update system settings
      */
     public function updateSettings()
     {
         $settingsModel = new \App\Models\SystemSettingModel();
-        
+
         $postData = $this->request->getPost();
-        
+
         foreach ($postData as $key => $value) {
             if (strpos($key, 'setting_') === 0) {
                 $settingKey = str_replace('setting_', '', $key);
                 $settingsModel->set($settingKey, $value);
             }
         }
-        
+
         // Handle logo upload
         $logo = $this->request->getFile('setting_business_logo');
         if ($logo && $logo->isValid() && !$logo->hasMoved()) {
@@ -442,7 +526,7 @@ class Admin extends BaseController
             $logo->move('uploads', $newName);
             $settingsModel->set('business_logo', 'uploads/' . $newName);
         }
-        
+
         // Log audit
         $this->auditLogModel->log(
             session()->get('user_id'),
@@ -452,13 +536,13 @@ class Admin extends BaseController
             null,
             $postData
         );
-        
+
         if ($this->request->isAJAX()) {
             return $this->response->setJSON(['status' => 'success', 'message' => 'Settings updated successfully']);
         }
         return redirect()->to('/admin/settings')->with('success', 'Settings updated successfully');
     }
-    
+
     /**
      * View audit logs
      */
@@ -469,10 +553,10 @@ class Admin extends BaseController
             'logs' => $this->auditLogModel->getRecent(100),
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/audit_logs', $data);
     }
-    
+
     /**
      * Export audit logs
      */
@@ -480,13 +564,13 @@ class Admin extends BaseController
     {
         $startDate = $this->request->getGet('start_date');
         $endDate = $this->request->getGet('end_date');
-        
+
         if ($startDate && $endDate) {
             $logs = $this->auditLogModel->getByDateRange($startDate, $endDate);
         } else {
             $logs = $this->auditLogModel->getRecent(1000);
         }
-        
+
         // Prepare data for export
         $exportData = [];
         foreach ($logs as $log) {
@@ -502,26 +586,26 @@ class Admin extends BaseController
                 'New Data' => $log['new_data']
             ];
         }
-        
+
         return $this->exportExcel($exportData, 'Audit Logs', 'audit_logs_' . date('Y-m-d') . '.xlsx');
     }
-    
+
     /**
      * Backup management
      */
     public function backup()
     {
         $backups = $this->backupLogModel->orderBy('created_at', 'DESC')->findAll(50);
-        
+
         $data = [
             'title' => 'Backup Management',
             'backups' => $backups,
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/backup', $data);
     }
-    
+
     /**
      * Create backup
      */
@@ -590,7 +674,7 @@ class Admin extends BaseController
             ]);
         }
     }
-    
+
     /**
      * Restore backup
      */
@@ -664,14 +748,14 @@ class Admin extends BaseController
                 'message' => $e->getMessage(),
                 'created_by' => session()->get('user_id')
             ]);
-            
+
             return $this->response->setJSON([
                 'status' => 'error',
                 'message' => 'Failed to restore backup: ' . $e->getMessage()
             ]);
         }
     }
-    
+
     /**
      * Delete backup
      */
@@ -725,14 +809,14 @@ class Admin extends BaseController
 
         return $this->response->download($backupPath, null);
     }
-    
+
     /**
      * System Information
      */
     public function systemInfo()
     {
         $db = \Config\Database::connect();
-        
+
         $data = [
             'title' => 'System Information',
             'php_version' => phpversion(),
@@ -745,10 +829,10 @@ class Admin extends BaseController
             'memory_limit' => ini_get('memory_limit'),
             'activePage' => 'settings'
         ];
-        
+
         return view('admin/system_info', $data);
     }
-    
+
     /**
      * Export to Excel helper
      */
@@ -757,11 +841,11 @@ class Admin extends BaseController
         // Load PhpSpreadsheet
         $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        
+
         // Set title
         $sheet->setCellValue('A1', $title);
         $sheet->getStyle('A1')->getFont()->setBold(true)->setSize(14);
-        
+
         // Add data
         $row = 3;
         if (!empty($data) && is_array($data[0] ?? null)) {
@@ -773,7 +857,7 @@ class Admin extends BaseController
                 $col++;
             }
             $row++;
-            
+
             // Add data rows
             foreach ($data as $item) {
                 $col = 'A';
@@ -786,17 +870,17 @@ class Admin extends BaseController
         } else {
             $sheet->setCellValue('A3', 'No data available');
         }
-        
+
         // Auto-size columns
         foreach (range('A', $sheet->getHighestColumn()) as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
-        
+
         // Set headers for download
         header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
         header('Content-Disposition: attachment;filename="' . $filename . '"');
         header('Cache-Control: max-age=0');
-        
+
         $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
         $writer->save('php://output');
         exit();

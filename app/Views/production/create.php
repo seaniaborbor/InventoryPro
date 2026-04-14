@@ -165,6 +165,8 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
 <script>
 let materials = [];
 
@@ -188,12 +190,17 @@ $(document).ready(function() {
         }
     });
 
-    // FORM SUBMIT - Enhanced with debugging
+    // FORM SUBMIT
     $('#productionForm').on('submit', function(e) {
         e.preventDefault();
 
         if (materials.length === 0) {
-            alert('❌ Please add at least one material to the production job.');
+            Swal.fire({
+                icon: 'error',
+                title: 'No Materials',
+                text: 'Please add at least one material to the production job.',
+                confirmButtonColor: '#d33'
+            });
             return;
         }
 
@@ -210,7 +217,15 @@ $(document).ready(function() {
             materials: materials
         };
 
-        console.log('📤 Sending data:', formData);   // ← Debug log
+        // Show loading
+        Swal.fire({
+            title: 'Saving...',
+            text: 'Please wait while we save the production job',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
 
         $.ajax({
             url: '<?= base_url('production/store') ?>',
@@ -224,12 +239,32 @@ $(document).ready(function() {
             success: function(response) {
                 console.log('✅ Server Response:', response);
                 if (response.status === 'success') {
-                    alert('✅ Production job saved successfully!');
-                    setTimeout(() => {
-                        window.location.href = '<?= base_url('production/jobs') ?>';
-                    }, 1000);
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Production Job Saved!',
+                        text: 'Job #' + response.job.job_reference + ' has been created successfully.',
+                        showCancelButton: true,
+                        confirmButtonText: '📄 Print Worksheet',
+                        cancelButtonText: '🏠 Exit to Jobs',
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#6c757d'
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            window.open('<?= base_url('production/print/') ?>' + response.job_id, '_blank');
+                            setTimeout(() => {
+                                window.location.href = '<?= base_url('production/jobs') ?>';
+                            }, 500);
+                        } else {
+                            window.location.href = '<?= base_url('production/jobs') ?>';
+                        }
+                    });
                 } else {
-                    alert('❌ ' + (response.message || 'Failed to save production job'));
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: response.message || 'Failed to save production job',
+                        confirmButtonColor: '#d33'
+                    });
                 }
             },
             error: function(xhr, status, error) {
@@ -238,13 +273,17 @@ $(document).ready(function() {
                     responseText: xhr.responseText,
                     error: error
                 });
-                alert('❌ Server error occurred.\nCheck browser console (F12) for details.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Server Error',
+                    text: 'An error occurred while saving. Check browser console for details.',
+                    confirmButtonColor: '#d33'
+                });
             }
         });
     });
 });
 
-// ====================== ADD / RENDER / REMOVE / TEMPLATE (unchanged) ======================
 function addMaterial() {
     const materialId = $('#material_select').val();
     const materialName = $('#material_select option:selected').text().split(' (')[0].trim();
@@ -252,7 +291,12 @@ function addMaterial() {
     const unitCost = parseFloat($('#material_cost').val());
 
     if (!materialId || isNaN(quantity) || quantity <= 0 || isNaN(unitCost) || unitCost < 0) {
-        alert('❌ Please select a material and enter valid quantity and unit cost.');
+        Swal.fire({
+            icon: 'warning',
+            title: 'Invalid Input',
+            text: 'Please select a material and enter valid quantity and unit cost.',
+            confirmButtonColor: '#3085d6'
+        });
         return;
     }
 
@@ -277,7 +321,7 @@ function renderMaterials() {
         totalCost += lineTotal;
 
         html += `<tr>
-            <td><strong>${material.product_name}</strong></td>
+            <td><strong>${escapeHtml(material.product_name)}</strong></td>
             <td>${formatNumber(material.quantity)}</td>
             <td>${formatNumber(material.unit_cost)}</td>
             <td class="fw-bold text-end">${formatNumber(lineTotal)}</td>
@@ -300,12 +344,30 @@ function removeMaterial(index) {
 
 function loadTemplate() {
     const templateId = $('#bom_template').val();
-    if (!templateId) return alert('Please select a template first.');
+    if (!templateId) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'No Template Selected',
+            text: 'Please select a template first.',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+
+    Swal.fire({
+        title: 'Loading Template...',
+        text: 'Please wait',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
     $.ajax({
         url: '<?= base_url('production/get-materials') ?>/' + templateId,
         type: 'GET',
         success: function(response) {
+            Swal.close();
             if (response.status === 'success' && response.data) {
                 materials = [];
                 response.data.forEach(item => {
@@ -317,10 +379,30 @@ function loadTemplate() {
                     });
                 });
                 renderMaterials();
-                alert('✅ Template loaded successfully!');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Template Loaded!',
+                    text: `${response.data.length} materials added to the job.`,
+                    confirmButtonColor: '#3085d6',
+                    timer: 2000
+                });
             } else {
-                alert('Failed to load template.');
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Failed',
+                    text: 'Failed to load template.',
+                    confirmButtonColor: '#d33'
+                });
             }
+        },
+        error: function() {
+            Swal.close();
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'Could not load template. Please try again.',
+                confirmButtonColor: '#d33'
+            });
         }
     });
 }
@@ -329,6 +411,15 @@ function formatNumber(num) {
     return parseFloat(num).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 }
 
+function escapeHtml(str) {
+    if (!str) return '';
+    return str.replace(/[&<>]/g, function(m) {
+        if (m === '&') return '&amp;';
+        if (m === '<') return '&lt;';
+        if (m === '>') return '&gt;';
+        return m;
+    });
+}
 </script>
 
 <?= $this->endSection() ?>

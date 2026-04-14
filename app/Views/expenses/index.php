@@ -27,7 +27,7 @@
                             <option value="">All Categories</option>
                             <?php foreach ($categories as $cat): ?>
                             <option value="<?= $cat['id'] ?>" <?= $selectedCategory == $cat['id'] ? 'selected' : '' ?>>
-                                <?= $cat['category_name'] ?>
+                                <?= esc($cat['category_name']) ?>
                             </option>
                             <?php endforeach; ?>
                         </select>
@@ -46,13 +46,22 @@
                     </div>
                 </form>
                 
-                <!-- Summary Cards -->
+                <!-- Summary Cards - FIXED -->
                 <div class="row mb-4">
                     <div class="col-md-4">
                         <div class="card bg-info text-white">
                             <div class="card-body">
-                                <h6 class="card-title">Total Expenses</h6>
-                                <h3><?= formatCurrency(array_sum(array_column($summary, 'total_amount')), 'LRD') ?></h3>
+                                <h6 class="card-title">Total Expenses (All)</h6>
+                                <h3>
+                                    <?php 
+                                    // Calculate total expenses across all currencies
+                                    $totalAll = 0;
+                                    foreach ($summary as $s) {
+                                        $totalAll += $s['total_amount'];
+                                    }
+                                    echo formatCurrency($totalAll, 'LRD');
+                                    ?>
+                                </h3>
                             </div>
                         </div>
                     </div>
@@ -60,7 +69,18 @@
                         <div class="card bg-warning text-dark">
                             <div class="card-body">
                                 <h6 class="card-title">LRD Expenses</h6>
-                                <h3><?= formatCurrency(array_sum(array_filter($summary, function($s) { return $s['currency'] == 'LRD'; })), 'LRD') ?></h3>
+                                <h3>
+                                    <?php 
+                                    // Calculate only LRD expenses
+                                    $totalLRD = 0;
+                                    foreach ($summary as $s) {
+                                        if ($s['currency'] == 'LRD') {
+                                            $totalLRD += $s['total_amount'];
+                                        }
+                                    }
+                                    echo formatCurrency($totalLRD, 'LRD');
+                                    ?>
+                                </h3>
                             </div>
                         </div>
                     </div>
@@ -68,7 +88,18 @@
                         <div class="card bg-success text-white">
                             <div class="card-body">
                                 <h6 class="card-title">USD Expenses</h6>
-                                <h3><?= formatCurrency(array_sum(array_filter($summary, function($s) { return $s['currency'] == 'USD'; })), 'USD') ?></h3>
+                                <h3>
+                                    <?php 
+                                    // Calculate only USD expenses
+                                    $totalUSD = 0;
+                                    foreach ($summary as $s) {
+                                        if ($s['currency'] == 'USD') {
+                                            $totalUSD += $s['total_amount'];
+                                        }
+                                    }
+                                    echo formatCurrency($totalUSD, 'USD');
+                                    ?>
+                                </h3>
                             </div>
                         </div>
                     </div>
@@ -90,66 +121,83 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <?php foreach ($expenses as $expense): ?>
-                            <tr>
-                                <td><?= date('Y-m-d', strtotime($expense['expense_date'])) ?></td>
-                                <td><span class="badge bg-secondary"><?= $expense['category_name'] ?></span></td>
-                                <td><?= $expense['description'] ?: '-' ?></td>
-                                <td class="fw-bold"><?= formatCurrency($expense['amount'], $expense['currency']) ?></td>
-                                <td>
-                                    <?php if ($expense['receipt_image']): ?>
-                                        <a href="<?= base_url($expense['receipt_image']) ?>" target="_blank" class="btn btn-sm btn-info">
-                                            <i class="bi bi-image"></i> View
-                                        </a>
-                                    <?php else: ?>
-                                        -
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <small class="text-muted">
-                                        <?= $expense['created_by_name'] ?: 'Unknown' ?><br>
-                                        <span class="text-xs"><?= date('M d, Y H:i', strtotime($expense['created_at'])) ?></span>
-                                    </small>
-                                </td>
-                                <td>
-                                    <?php if ($expense['updated_by_name']): ?>
+                            <?php if (empty($expenses)): ?>
+                                <tr>
+                                    <td colspan="8" class="text-center text-muted py-4">
+                                        <i class="bi bi-inbox" style="font-size: 2rem;"></i>
+                                        <p class="mt-2">No expenses found for the selected criteria.</p>
+                                    </td>
+                                </tr>
+                            <?php else: ?>
+                                <?php foreach ($expenses as $expense): ?>
+                                <tr>
+                                    <td><?= date('Y-m-d', strtotime($expense['expense_date'])) ?></td>
+                                    <td><span class="badge bg-secondary"><?= esc($expense['category_name']) ?></span></td>
+                                    <td><?= esc($expense['description'] ?: '-') ?></td>
+                                    <td class="fw-bold"><?= formatCurrency($expense['amount'], $expense['currency']) ?></td>
+                                    <td>
+                                        <?php if ($expense['receipt_image']): ?>
+                                            <a href="<?= base_url($expense['receipt_image']) ?>" target="_blank" class="btn btn-sm btn-info">
+                                                <i class="bi bi-image"></i> View
+                                            </a>
+                                        <?php else: ?>
+                                            -
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
                                         <small class="text-muted">
-                                            <?= $expense['updated_by_name'] ?><br>
-                                            <span class="text-xs"><?= date('M d, Y H:i', strtotime($expense['updated_at'])) ?></span>
+                                            <?= esc($expense['created_by_name'] ?: 'Unknown') ?><br>
+                                            <span class="text-xs"><?= date('M d, Y H:i', strtotime($expense['created_at'])) ?></span>
                                         </small>
-                                    <?php else: ?>
-                                        <small class="text-muted">-</small>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <a href="<?= base_url('expenses/edit/' . $expense['id']) ?>" class="btn btn-sm btn-primary">
-                                        <i class="bi bi-pencil"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-danger" onclick="deleteExpense(<?= $expense['id'] ?>)">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </td>
-                            </tr>
-                            <?php endforeach; ?>
+                                    </td>
+                                    <td>
+                                        <?php if ($expense['updated_by_name']): ?>
+                                            <small class="text-muted">
+                                                <?= esc($expense['updated_by_name']) ?><br>
+                                                <span class="text-xs"><?= date('M d, Y H:i', strtotime($expense['updated_at'])) ?></span>
+                                            </small>
+                                        <?php else: ?>
+                                            <small class="text-muted">-</small>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <a href="<?= base_url('expenses/edit/' . $expense['id']) ?>" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-pencil"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-danger" onclick="deleteExpense(<?= $expense['id'] ?>)">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
                         </tbody>
                     </table>
                 </div>
                 
-                <?= $pager->links() ?>
+                <?php if (isset($pager)): ?>
+                    <div class="mt-3">
+                        <?= $pager->links() ?>
+                    </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 $(document).ready(function() {
-    $('#expensesTable').DataTable({
-        pageLength: 20,
-        order: [[0, 'desc']],
-        searching: true,
-        paging: false,
-        info: false
-    });
+    // Only initialize DataTable if there are rows
+    if ($('#expensesTable tbody tr').length > 1 && $('#expensesTable tbody tr td').length > 1) {
+        $('#expensesTable').DataTable({
+            pageLength: 20,
+            order: [[0, 'desc']],
+            searching: true,
+            paging: false,
+            info: false
+        });
+    }
 });
 
 function deleteExpense(id) {
@@ -164,20 +212,28 @@ function deleteExpense(id) {
     }).then((result) => {
         if (result.isConfirmed) {
             $.ajax({
-                url: '/expenses/delete/' + id,
+                url: '<?= base_url('expenses/delete/') ?>' + id,
                 type: 'POST',
-                data: {<?= csrf_token() ?>: '<?= csrf_hash() ?>'},
+                data: {'<?= csrf_token() ?>': '<?= csrf_hash() ?>'},
                 success: function(response) {
                     if (response.status === 'success') {
-                        showToast('Success', response.message, 'success');
+                        Swal.fire('Deleted!', response.message, 'success');
                         setTimeout(() => location.reload(), 1500);
                     } else {
-                        showToast('Error', response.message, 'error');
+                        Swal.fire('Error!', response.message, 'error');
                     }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'Failed to delete expense', 'error');
                 }
             });
         }
     });
+}
+
+function showToast(title, message, type) {
+    // Simple fallback if showToast is not defined
+    Swal.fire(title, message, type);
 }
 </script>
 <?= $this->endSection() ?>

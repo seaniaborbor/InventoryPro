@@ -9,7 +9,13 @@ class DatabaseSeeder extends Seeder
 {
     public function run()
     {
-        // Insert default roles
+        echo "\n==========================================\n";
+        echo "STARTING AUTHENTICATION SEEDER\n";
+        echo "==========================================\n\n";
+
+        // ==================== 1. INSERT ROLES ====================
+        echo "📌 Inserting roles...\n";
+        
         $roles = [
             [
                 'role_name' => 'Admin',
@@ -30,139 +36,302 @@ class DatabaseSeeder extends Seeder
                 'updated_at' => Time::now(),
             ],
         ];
-        $this->db->table('roles')->insertBatch($roles);
+        
+        foreach ($roles as $role) {
+            $exists = $this->db->table('roles')
+                ->where('role_name', $role['role_name'])
+                ->get()
+                ->getRow();
+            
+            if (!$exists) {
+                $this->db->table('roles')->insert($role);
+                echo "   ✓ Role '{$role['role_name']}' created.\n";
+            } else {
+                echo "   • Role '{$role['role_name']}' already exists.\n";
+            }
+        }
 
         // Get role IDs
         $adminRole = $this->db->table('roles')->where('role_name', 'Admin')->get()->getRow();
         $managerRole = $this->db->table('roles')->where('role_name', 'Manager')->get()->getRow();
         $staffRole = $this->db->table('roles')->where('role_name', 'Staff')->get()->getRow();
 
-        // Insert default permissions
+        // ==================== 2. INSERT PERMISSIONS ====================
+        echo "\n📌 Inserting permissions...\n";
+        
         $permissionModel = new \App\Models\PermissionModel();
         $permissionCatalog = $permissionModel->getPermissionCatalog();
-        $permissions = [];
-        foreach ($permissionCatalog as $groupPermissions) {
+        
+        $permissionsInserted = 0;
+        $permissionsExisting = 0;
+        
+        foreach ($permissionCatalog as $groupName => $groupPermissions) {
             foreach ($groupPermissions as $permission) {
-                $permissions[] = [
-                    'permission_name' => $permission['permission_name'],
-                    'description' => $permission['description'],
-                ];
+                $exists = $this->db->table('permissions')
+                    ->where('permission_name', $permission['permission_name'])
+                    ->get()
+                    ->getRow();
+                
+                if (!$exists) {
+                    $this->db->table('permissions')->insert([
+                        'permission_name' => $permission['permission_name'],
+                        'description' => $permission['description'],
+                        'created_at' => Time::now(),
+                        'updated_at' => Time::now(),
+                    ]);
+                    $permissionsInserted++;
+                } else {
+                    $permissionsExisting++;
+                }
             }
         }
-        $this->db->table('permissions')->insertBatch($permissions);
+        
+        echo "   ✓ {$permissionsInserted} new permissions inserted.\n";
+        echo "   • {$permissionsExisting} permissions already exist.\n";
 
-        // Assign permissions to roles
-        $permissionModel->applyDefaultRolePermissions([
-            ['id' => $managerRole->id, 'role_name' => 'Manager'],
-            ['id' => $staffRole->id, 'role_name' => 'Staff'],
-            ['id' => $adminRole->id, 'role_name' => 'Admin'],
-        ]);
+        // ==================== 3. ASSIGN PERMISSIONS TO ROLES ====================
+        echo "\n📌 Assigning permissions to roles...\n";
+        
+        // Get all permissions
+        $allPermissions = $this->db->table('permissions')->get()->getResultArray();
+        $allPermissionIds = array_column($allPermissions, 'id');
+        
+        // Admin gets ALL permissions
+        $this->assignPermissionsToRole($adminRole->id, $allPermissionIds);
+        echo "   ✓ Admin role assigned " . count($allPermissionIds) . " permissions.\n";
+        
+        // Manager gets specific permissions based on catalog defaults
+        $managerPermissions = [];
+        foreach ($permissionCatalog as $groupPermissions) {
+            foreach ($groupPermissions as $permission) {
+                if (in_array('Manager', $permission['default_roles'])) {
+                    $perm = $this->db->table('permissions')
+                        ->where('permission_name', $permission['permission_name'])
+                        ->get()
+                        ->getRow();
+                    if ($perm) {
+                        $managerPermissions[] = $perm->id;
+                    }
+                }
+            }
+        }
+        $this->assignPermissionsToRole($managerRole->id, $managerPermissions);
+        echo "   ✓ Manager role assigned " . count($managerPermissions) . " permissions.\n";
+        
+        // Staff gets specific permissions based on catalog defaults
+        $staffPermissions = [];
+        foreach ($permissionCatalog as $groupPermissions) {
+            foreach ($groupPermissions as $permission) {
+                if (in_array('Staff', $permission['default_roles'])) {
+                    $perm = $this->db->table('permissions')
+                        ->where('permission_name', $permission['permission_name'])
+                        ->get()
+                        ->getRow();
+                    if ($perm) {
+                        $staffPermissions[] = $perm->id;
+                    }
+                }
+            }
+        }
+        $this->assignPermissionsToRole($staffRole->id, $staffPermissions);
+        echo "   ✓ Staff role assigned " . count($staffPermissions) . " permissions.\n";
 
-        // Create admin user
-        $this->db->table('users')->insert([
-            'username' => 'admin',
-            'email' => 'admin@innovativegraphics.com',
-            'password' => password_hash('Admin@123', PASSWORD_DEFAULT),
-            'full_name' => 'System Administrator',
-            'phone' => '+231-778-651-747',
-            'role_id' => $adminRole->id,
-            'is_active' => 1,
-            'created_at' => Time::now(),
-            'updated_at' => Time::now(),
-        ]);
+        // ==================== 4. CREATE USERS ====================
+        echo "\n📌 Creating users...\n";
+        
+        // Admin User
+        $adminUser = $this->db->table('users')
+            ->where('username', 'admin')
+            ->orWhere('email', 'admin@innovativegraphics.com')
+            ->get()
+            ->getRow();
+        
+        if (!$adminUser) {
+            $this->db->table('users')->insert([
+                'username' => 'admin',
+                'email' => 'admin@innovativegraphics.com',
+                'password' => password_hash('Admin@123', PASSWORD_DEFAULT),
+                'full_name' => 'System Administrator',
+                'phone' => '+231-778-651-747',
+                'role_id' => $adminRole->id,
+                'is_active' => 1,
+                'created_at' => Time::now(),
+                'updated_at' => Time::now(),
+            ]);
+            echo "   ✓ Admin user created.\n";
+        } else {
+            echo "   • Admin user already exists.\n";
+        }
+        
+        // Manager User
+        $managerUser = $this->db->table('users')
+            ->where('username', 'manager')
+            ->orWhere('email', 'manager@innovativegraphics.com')
+            ->get()
+            ->getRow();
+        
+        if (!$managerUser) {
+            $this->db->table('users')->insert([
+                'username' => 'manager',
+                'email' => 'manager@innovativegraphics.com',
+                'password' => password_hash('Manager@123', PASSWORD_DEFAULT),
+                'full_name' => 'Operations Manager',
+                'phone' => '+231-778-651-748',
+                'role_id' => $managerRole->id,
+                'is_active' => 1,
+                'created_at' => Time::now(),
+                'updated_at' => Time::now(),
+            ]);
+            echo "   ✓ Manager user created.\n";
+        } else {
+            echo "   • Manager user already exists.\n";
+        }
+        
+        // Staff User
+        $staffUser = $this->db->table('users')
+            ->where('username', 'staff')
+            ->orWhere('email', 'staff@innovativegraphics.com')
+            ->get()
+            ->getRow();
+        
+        if (!$staffUser) {
+            $this->db->table('users')->insert([
+                'username' => 'staff',
+                'email' => 'staff@innovativegraphics.com',
+                'password' => password_hash('Staff@123', PASSWORD_DEFAULT),
+                'full_name' => 'Sales Staff',
+                'phone' => '+231-778-651-749',
+                'role_id' => $staffRole->id,
+                'is_active' => 1,
+                'created_at' => Time::now(),
+                'updated_at' => Time::now(),
+            ]);
+            echo "   ✓ Staff user created.\n";
+        } else {
+            echo "   • Staff user already exists.\n";
+        }
 
-        // Insert default units
+        // ==================== 5. INSERT UNITS ====================
+        echo "\n📌 Inserting product units...\n";
+        
         $units = [
-            ['unit_name' => 'Pieces', 'unit_symbol' => 'pcs'],
-            ['unit_name' => 'Pack', 'unit_symbol' => 'pack'],
-            ['unit_name' => 'Sheet', 'unit_symbol' => 'sheet'],
-            ['unit_name' => 'Roll', 'unit_symbol' => 'roll'],
-            ['unit_name' => 'Box', 'unit_symbol' => 'box'],
-            ['unit_name' => 'Kilogram', 'unit_symbol' => 'kg'],
-            ['unit_name' => 'Liter', 'unit_symbol' => 'L'],
-            ['unit_name' => 'Meter', 'unit_symbol' => 'm'],
+            ['unit_name' => 'Pieces', 'unit_symbol' => 'pcs', 'description' => 'Individual pieces/count'],
+            ['unit_name' => 'Carton', 'unit_symbol' => 'ctn', 'description' => 'Carton box'],
+            ['unit_name' => 'Pack', 'unit_symbol' => 'pack', 'description' => 'Pack of items'],
+            ['unit_name' => 'Sheet', 'unit_symbol' => 'sheet', 'description' => 'Single sheet'],
+            ['unit_name' => 'Roll', 'unit_symbol' => 'roll', 'description' => 'Roll of material'],
+            ['unit_name' => 'Box', 'unit_symbol' => 'box', 'description' => 'Box container'],
+            ['unit_name' => 'Kilogram', 'unit_symbol' => 'kg', 'description' => 'Weight in kilograms'],
+            ['unit_name' => 'Gram', 'unit_symbol' => 'g', 'description' => 'Weight in grams'],
+            ['unit_name' => 'Liter', 'unit_symbol' => 'L', 'description' => 'Volume in liters'],
+            ['unit_name' => 'Milliliter', 'unit_symbol' => 'mL', 'description' => 'Volume in milliliters'],
+            ['unit_name' => 'Meter', 'unit_symbol' => 'm', 'description' => 'Length in meters'],
+            ['unit_name' => 'Centimeter', 'unit_symbol' => 'cm', 'description' => 'Length in centimeters'],
+            ['unit_name' => 'Dozen', 'unit_symbol' => 'doz', 'description' => '12 pieces'],
+            ['unit_name' => 'Gross', 'unit_symbol' => 'gr', 'description' => '144 pieces (12 dozen)'],
+            ['unit_name' => 'Ream', 'unit_symbol' => 'ream', 'description' => '500 sheets of paper'],
+            ['unit_name' => 'Set', 'unit_symbol' => 'set', 'description' => 'Complete set'],
+            ['unit_name' => 'Pair', 'unit_symbol' => 'pr', 'description' => '2 pieces'],
+            ['unit_name' => 'Bundle', 'unit_symbol' => 'bdl', 'description' => 'Bundle of items'],
+            ['unit_name' => 'Bag', 'unit_symbol' => 'bag', 'description' => 'Bag container'],
+            ['unit_name' => 'Bottle', 'unit_symbol' => 'btl', 'description' => 'Bottle container'],
         ];
+        
+        $unitsInserted = 0;
+        $unitsExisting = 0;
+        
         foreach ($units as $unit) {
-            $this->db->table('units')->insert([
-                'unit_name' => $unit['unit_name'],
-                'unit_symbol' => $unit['unit_symbol'],
-                'created_at' => Time::now(),
-                'updated_at' => Time::now(),
-            ]);
+            $exists = $this->db->table('units')
+                ->where('unit_name', $unit['unit_name'])
+                ->get()
+                ->getRow();
+            
+            if (!$exists) {
+                $this->db->table('units')->insert([
+                    'unit_name' => $unit['unit_name'],
+                    'unit_symbol' => $unit['unit_symbol'],
+                    'created_at' => Time::now(),
+                    'updated_at' => Time::now(),
+                ]);
+                $unitsInserted++;
+            } else {
+                $unitsExisting++;
+            }
         }
+        
+        echo "   ✓ {$unitsInserted} new units inserted.\n";
+        echo "   • {$unitsExisting} units already exist.\n";
 
-        // Insert default categories
-        $categories = [
-            ['category_name' => 'ID Card Materials', 'description' => 'PVC cards, ribbons, laminates'],
-            ['category_name' => 'Printer Parts', 'description' => 'Print heads, rollers, maintenance kits'],
-            ['category_name' => 'Printing Materials', 'description' => 'Inks, toners, paper, card stock'],
-            ['category_name' => 'Laminating Materials', 'description' => 'Laminating sheets, pouches'],
-            ['category_name' => 'Office Supplies', 'description' => 'Stationery, labels, envelopes'],
-            ['category_name' => 'Equipment', 'description' => 'Printers, laminators'],
-        ];
-        foreach ($categories as $cat) {
-            $this->db->table('categories')->insert([
-                'category_name' => $cat['category_name'],
-                'description' => $cat['description'],
-                'created_at' => Time::now(),
-                'updated_at' => Time::now(),
-            ]);
-        }
-
-        // Insert default expense categories
-        $expenseCategories = [
-            ['category_name' => 'Electricity', 'description' => 'Power bills'],
-            ['category_name' => 'Internet', 'description' => 'Internet service'],
-            ['category_name' => 'Staff Salary', 'description' => 'Employee salaries'],
-            ['category_name' => 'Maintenance', 'description' => 'Equipment maintenance'],
-            ['category_name' => 'Transport', 'description' => 'Transportation costs'],
-            ['category_name' => 'Equipment Repair', 'description' => 'Repair costs'],
-            ['category_name' => 'Rent', 'description' => 'Office/Shop rent'],
-            ['category_name' => 'Consumables', 'description' => 'Office consumables'],
-            ['category_name' => 'Other', 'description' => 'Miscellaneous expenses'],
-        ];
-        foreach ($expenseCategories as $cat) {
-            $this->db->table('expense_categories')->insert([
-                'category_name' => $cat['category_name'],
-                'description' => $cat['description'],
-                'created_at' => Time::now(),
-                'updated_at' => Time::now(),
-            ]);
-        }
-
-        // Insert default system settings
-        $settings = [
-            ['setting_key' => 'business_name', 'setting_value' => 'Innovative Graphics Design & Computer Solutions', 'setting_type' => 'string', 'group' => 'general'],
-            ['setting_key' => 'business_address', 'setting_value' => 'Broad & Benson Streets, Metropolitan Building, Monrovia, Liberia', 'setting_type' => 'text', 'group' => 'general'],
-            ['setting_key' => 'business_phone', 'setting_value' => '+231-778-651-747 / 880-770-689', 'setting_type' => 'string', 'group' => 'general'],
-            ['setting_key' => 'business_email', 'setting_value' => 'info@innovativegraphics.com', 'setting_type' => 'string', 'group' => 'general'],
+        // ==================== 6. SYSTEM SETTINGS (only essential for login) ====================
+        echo "\n📌 Inserting essential system settings...\n";
+        
+        $essentialSettings = [
+            ['setting_key' => 'business_name', 'setting_value' => 'Innovative Graphics', 'setting_type' => 'string', 'group' => 'general'],
             ['setting_key' => 'default_currency', 'setting_value' => 'LRD', 'setting_type' => 'string', 'group' => 'currency'],
-            ['setting_key' => 'currency_symbol_lrd', 'setting_value' => 'L$', 'setting_type' => 'string', 'group' => 'currency'],
-            ['setting_key' => 'currency_symbol_usd', 'setting_value' => '$', 'setting_type' => 'string', 'group' => 'currency'],
-            ['setting_key' => 'exchange_rate', 'setting_value' => '1.0', 'setting_type' => 'decimal', 'group' => 'currency'],
-            ['setting_key' => 'low_stock_threshold', 'setting_value' => '10', 'setting_type' => 'integer', 'group' => 'inventory'],
-            ['setting_key' => 'date_format', 'setting_value' => 'Y-m-d', 'setting_type' => 'string', 'group' => 'general'],
-            ['setting_key' => 'time_format', 'setting_value' => 'H:i:s', 'setting_type' => 'string', 'group' => 'general'],
             ['setting_key' => 'session_timeout', 'setting_value' => '3600', 'setting_type' => 'integer', 'group' => 'security'],
+            ['setting_key' => 'default_unit', 'setting_value' => 'pcs', 'setting_type' => 'string', 'group' => 'inventory'],
         ];
-        foreach ($settings as $setting) {
-            $this->db->table('system_settings')->insert([
-                'setting_key' => $setting['setting_key'],
-                'setting_value' => $setting['setting_value'],
-                'setting_type' => $setting['setting_type'],
-                'group' => $setting['group'],
-                'created_at' => Time::now(),
-                'updated_at' => Time::now(),
-            ]);
+        
+        foreach ($essentialSettings as $setting) {
+            $exists = $this->db->table('system_settings')
+                ->where('setting_key', $setting['setting_key'])
+                ->get()
+                ->getRow();
+            
+            if (!$exists) {
+                $this->db->table('system_settings')->insert([
+                    'setting_key' => $setting['setting_key'],
+                    'setting_value' => $setting['setting_value'],
+                    'setting_type' => $setting['setting_type'],
+                    'group' => $setting['group'],
+                    'created_at' => Time::now(),
+                    'updated_at' => Time::now(),
+                ]);
+                echo "   ✓ Setting '{$setting['setting_key']}' created.\n";
+            } else {
+                echo "   • Setting '{$setting['setting_key']}' already exists.\n";
+            }
         }
 
-        // Insert initial currency rate
-        $this->db->table('currency_rates')->insert([
-            'base_currency' => 'USD',
-            'target_currency' => 'LRD',
-            'rate' => '180.00',
-            'date' => Time::now()->toDateString(),
-            'created_at' => Time::now(),
-        ]);
+        // ==================== COMPLETION SUMMARY ====================
+        echo "\n==========================================\n";
+        echo "✅ DATABASE SEEDER COMPLETED!\n";
+        echo "==========================================\n";
+        echo "\n📋 LOGIN CREDENTIALS:\n";
+        echo "------------------------------------------\n";
+        echo "Admin:   admin@innovativegraphics.com / Admin@123\n";
+        echo "Manager: manager@innovativegraphics.com / Manager@123\n";
+        echo "Staff:   staff@innovativegraphics.com / Staff@123\n";
+        echo "------------------------------------------\n";
+        echo "\n📊 SUMMARY:\n";
+        echo "   • Roles: 3 (Admin, Manager, Staff)\n";
+        echo "   • Permissions: " . count($allPermissions) . " total\n";
+        echo "   • Users: 3 created\n";
+        echo "   • Units: " . count($units) . " units available\n";
+        echo "==========================================\n\n";
+    }
+    
+    /**
+     * Assign permissions to a role (clears existing first)
+     */
+    private function assignPermissionsToRole($roleId, array $permissionIds)
+    {
+        // Remove existing permissions
+        $this->db->table('role_permissions')
+            ->where('role_id', $roleId)
+            ->delete();
+        
+        // Insert new permissions
+        if (!empty($permissionIds)) {
+            $data = [];
+            foreach ($permissionIds as $permId) {
+                $data[] = [
+                    'role_id' => $roleId,
+                    'permission_id' => $permId,
+                    'created_at' => Time::now(),
+                ];
+            }
+            $this->db->table('role_permissions')->insertBatch($data);
+        }
     }
 }
